@@ -1,11 +1,9 @@
 package se.rikardbq.models;
 
-import com.fasterxml.jackson.core.JsonParser;
-
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Claims<T> implements Serializable {
+public class ResponseClaims<T> implements Serializable {
     private static long serialVersionUID = 1L;
 
     private Enums.Issuer iss;
@@ -14,10 +12,10 @@ public class Claims<T> implements Serializable {
     private long iat;
     private long exp;
 
-    public Claims() {
+    public ResponseClaims() {
     }
 
-    public Claims(Enums.Issuer iss, Enums.Subject sub, T dat, long iat, long exp) {
+    public ResponseClaims(Enums.Issuer iss, Enums.Subject sub, T dat, long iat, long exp) {
         this.iss = iss;
         this.sub = sub;
         this.dat = dat;
@@ -69,8 +67,8 @@ public class Claims<T> implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Claims<T> claims = (Claims<T>) o;
-        return Objects.equals(iss, claims.iss) && Objects.equals(sub, claims.sub) && Objects.equals(dat, claims.dat) && iat == claims.iat && exp == claims.exp;
+        ResponseClaims<T> responseClaims = (ResponseClaims<T>) o;
+        return Objects.equals(iss, responseClaims.iss) && Objects.equals(sub, responseClaims.sub) && Objects.equals(dat, responseClaims.dat) && iat == responseClaims.iat && exp == responseClaims.exp;
     }
 
     @Override

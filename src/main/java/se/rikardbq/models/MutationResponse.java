@@ -21,6 +21,21 @@ public class MutationResponse implements Serializable {
         this.lastInsertRowId = lastInsertRowId;
     }
 
+    public void setRowsAffected(long rowsAffected) {
+        this.rowsAffected = rowsAffected;
+    }
+
+    public long getRowsAffected() {
+        return rowsAffected;
+    }
+
+    public void setLastInsertRowId(long lastInsertRowId) {
+        this.lastInsertRowId = lastInsertRowId;
+    }
+
+    public long getLastInsertRowId() {
+        return lastInsertRowId;
+    }
 
     @Override
     public boolean equals(Object o) {
