@@ -51,7 +51,7 @@ public class Connector {
     private <T> FetchResponse<T> makeQuery(String query, Object[] parts) throws JsonProcessingException {
         String token = tokenManager.encodeToken(
                 this.createQueryDat(query, parts),
-                Enums.Subject.FETCH.name(),
+                Enums.Subject.FETCH,
                 this.usernamePasswordHash
         );
         String response = makeRequest(new TokenPayload(token, null));
@@ -69,7 +69,7 @@ public class Connector {
     private MutationResponse makeMutation(String query, Object[] parts) throws JsonProcessingException {
         String token = tokenManager.encodeToken(
                 this.createQueryDat(query, parts),
-                Enums.Subject.MUTATE.name(),
+                Enums.Subject.MUTATE,
                 this.usernamePasswordHash
         );
         String response = makeRequest(new TokenPayload(token, null));

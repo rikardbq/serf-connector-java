@@ -21,19 +21,19 @@ public class TokenManager {
         Algorithm algorithm = Algorithm.HMAC256(secret);
         JWTVerifier verifier = JWT.require(algorithm)
                 .withIssuer(Enums.Issuer.SERVER.name())
-                .withSubject("DATA")
+                .withSubject(Enums.Subject.DATA.name())
                 .build();
 
         return verifier.verify(token);
     }
 
-    public String encodeToken(Map<String, Object> dat, String subject, String secret) throws JWTCreationException {
+    public String encodeToken(Map<String, Object> dat, Enums.Subject subject, String secret) throws JWTCreationException {
         Algorithm algorithm = Algorithm.HMAC256(secret);
         Instant now = Instant.now();
 
         return JWT.create()
                 .withIssuer(Enums.Issuer.CLIENT.name())
-                .withSubject(subject)
+                .withSubject(subject.name())
                 .withClaim("dat", dat)
                 .withIssuedAt(now)
                 .withExpiresAt(now.plusSeconds(30))
