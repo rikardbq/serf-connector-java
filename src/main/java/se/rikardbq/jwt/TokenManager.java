@@ -20,7 +20,7 @@ public class TokenManager {
     public DecodedJWT decodeToken(String token, String secret) throws JWTVerificationException {
         Algorithm algorithm = Algorithm.HMAC256(secret);
         JWTVerifier verifier = JWT.require(algorithm)
-                .withIssuer(Enums.Issuer.SERVER.toString())
+                .withIssuer(Enums.Issuer.SERVER.name())
                 .withSubject("DATA")
                 .build();
 
@@ -32,7 +32,7 @@ public class TokenManager {
         Instant now = Instant.now();
 
         return JWT.create()
-                .withIssuer(Enums.Issuer.CLIENT.toString())
+                .withIssuer(Enums.Issuer.CLIENT.name())
                 .withSubject(subject)
                 .withClaim("dat", dat)
                 .withIssuedAt(now)

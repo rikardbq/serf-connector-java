@@ -49,13 +49,8 @@ public class Connector {
     }
 
     private <T> FetchResponse<T> makeQuery(String query, Object[] parts) throws JsonProcessingException {
-        Map<String, Object> dat = new TokenManager.DatBuilder()
-                .withField("query", query)
-                .withField("parts", List.of(parts))
-                .build();
-
         String token = tokenManager.encodeToken(
-                dat,
+                this.createQueryDat(query, parts),
                 Enums.Subject.FETCH.name(),
                 this.usernamePasswordHash
         );
@@ -66,13 +61,21 @@ public class Connector {
         });
     }
 
-    public <T> long mutate(String query, Object... parts) {
+    public long mutate(String query, Object... parts) throws JsonProcessingException {
         MutationResponse mRes = makeMutation(query, parts);
         return mRes.getRowsAffected();
     }
 
-    private <T> MutationResponse makeMutation(String query, Object[] parts) {
-        return new MutationResponse();
+    private MutationResponse makeMutation(String query, Object[] parts) throws JsonProcessingException {
+        String token = tokenManager.encodeToken(
+                this.createQueryDat(query, parts),
+                Enums.Subject.MUTATE.name(),
+                this.usernamePasswordHash
+        );
+        String response = makeRequest(new TokenPayload(token, null));
+        String json = this.handleResponse(response);
+
+        return objectMapper.readValue(json, MutationResponse.class);
     }
 
     private String makeRequest(TokenPayload requestBody) throws JsonProcessingException {
@@ -100,5 +103,12 @@ public class Connector {
         Claim datClaim = decodedJWT.getClaims().get("dat");
 
         return datClaim.toString();
+    }
+
+    private Map<String, Object> createQueryDat(String query, Object[] parts) {
+        return new TokenManager.DatBuilder()
+                .withField("query", query)
+                .withField("parts", List.of(parts))
+                .build();
     }
 }
