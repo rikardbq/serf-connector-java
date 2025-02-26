@@ -43,7 +43,7 @@ public class Connector {
         this.usernameHash = hashedUsername;
         this.usernamePasswordHash = hashedUsernamePassword;
     }
-    
+
     public <T> List<T> query(String query, Object... parts) throws JsonProcessingException {
         FetchResponse<T> qRes = makeQuery(query, parts);
 
@@ -110,9 +110,9 @@ public class Connector {
     }
 
     private Map<String, Object> createQueryDat(String query, Object[] parts) {
-        return new TokenManager.DatBuilder()
-                .withField("query", query)
-                .withField("parts", List.of(parts))
-                .build();
+        return Map.ofEntries(
+                Map.entry("query", query),
+                Map.entry("parts", List.of(parts))
+        );
     }
 }

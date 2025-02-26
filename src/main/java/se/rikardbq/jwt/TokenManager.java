@@ -9,7 +9,6 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import se.rikardbq.models.Enums;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 public class TokenManager {
@@ -38,22 +37,6 @@ public class TokenManager {
                 .withIssuedAt(now)
                 .withExpiresAt(now.plusSeconds(30))
                 .sign(algorithm);
-    }
-
-    public static class DatBuilder {
-        private static final Map<String, Object> datClaim = new HashMap<>();
-
-        public DatBuilder withField(String k, Object v) {
-            datClaim.put(k, v);
-            return this;
-        }
-
-        public Map<String, Object> build() {
-            Map<String, Object> mapToReturn = new HashMap<>(datClaim);
-            datClaim.clear();
-
-            return mapToReturn;
-        }
     }
 }
 

@@ -112,10 +112,10 @@ public class Migrator {
     }
 
     private Map<String, Object> createMigrationDat(String name, String query) {
-        return new TokenManager.DatBuilder()
-                .withField("name", name)
-                .withField("query", query)
-                .build();
+        return Map.ofEntries(
+                Map.entry("name", name),
+                Map.entry("query", query)
+        );
     }
 
     @Override
