@@ -1,6 +1,8 @@
 package se.rikardbq;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import se.rikardbq.connector.Connector;
+import se.rikardbq.connector.Migrator;
 import se.rikardbq.temp.SomeDataClass;
 
 import java.util.List;

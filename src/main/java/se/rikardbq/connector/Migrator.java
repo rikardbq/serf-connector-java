@@ -1,4 +1,4 @@
-package se.rikardbq;
+package se.rikardbq.connector;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;

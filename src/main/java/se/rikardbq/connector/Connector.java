@@ -1,4 +1,4 @@
-package se.rikardbq;
+package se.rikardbq.connector;
 
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -43,11 +43,7 @@ public class Connector {
         this.usernameHash = hashedUsername;
         this.usernamePasswordHash = hashedUsernamePassword;
     }
-
-    public TokenManager getTokenManager() {
-        return tokenManager;
-    }
-
+    
     public <T> List<T> query(String query, Object... parts) throws JsonProcessingException {
         FetchResponse<T> qRes = makeQuery(query, parts);
 
@@ -73,7 +69,7 @@ public class Connector {
         return objectMapper.readValue(response, MutationResponse.class);
     }
 
-    public String makeRequest(Map<String, Object> dat, Enums.Subject subject, boolean isMigration) throws JsonProcessingException {
+    String makeRequest(Map<String, Object> dat, Enums.Subject subject, boolean isMigration) throws JsonProcessingException {
         String token = tokenManager.encodeToken(
                 dat,
                 subject,
