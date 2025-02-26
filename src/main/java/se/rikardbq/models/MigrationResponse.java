@@ -15,6 +15,13 @@ public class MigrationResponse implements Serializable {
         this.state = state;
     }
 
+    public void setState(boolean state) {
+        this.state = state;
+    }
+
+    public boolean getState() {
+        return state;
+    }
 
     @Override
     public boolean equals(Object o) {

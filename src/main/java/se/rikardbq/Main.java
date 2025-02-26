@@ -53,11 +53,20 @@ public class Main {
     }
 
     public static void main(String[] args) {
+
+//        for (int i = 1; i<100; i++) {
+//            if (i == 50) {
+//                break;
+//            }
+//
+//            System.out.println(i);
+//        }
         try {
-            List<SomeDataClass> data = conn.query("SELECT * FROM testing_table WHERE im_data = ? and id = ?;", "hello data world", 1);
-            System.out.println("DATA=====" + " " + data);
+            List<SomeDataClass> data = conn.query("SELECT * FROM testing_table;");
             long rowsAffected = conn.mutate("INSERT INTO testing_table(im_data, im_data_also, im_data_too) VALUES(?, ?, ?)", "teeeeeeee8888888", "heeeeeeeeee", "wwaaaaaaaaaaa");
+            System.out.println("DATA=====" + " " + data);
             System.out.println(rowsAffected);
+            migrator.run(conn);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

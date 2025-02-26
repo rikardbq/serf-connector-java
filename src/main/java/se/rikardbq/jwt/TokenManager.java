@@ -49,7 +49,10 @@ public class TokenManager {
         }
 
         public Map<String, Object> build() {
-            return datClaim;
+            Map<String, Object> mapToReturn = new HashMap<>(datClaim);
+            datClaim.clear();
+
+            return mapToReturn;
         }
     }
 }

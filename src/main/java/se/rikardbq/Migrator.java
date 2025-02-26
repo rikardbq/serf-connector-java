@@ -1,17 +1,23 @@
 package se.rikardbq;
 
 import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import se.rikardbq.jwt.TokenManager;
+import se.rikardbq.models.Enums;
+import se.rikardbq.models.MigrationResponse;
+import se.rikardbq.models.migration.Migration;
 
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class Migrator {
 
@@ -50,21 +56,66 @@ public class Migrator {
             objectMapper = new ObjectMapper(JsonFactory.builder().configure(JsonReadFeature.ALLOW_JAVA_COMMENTS, true).build());
             this.appliedMigrations = objectMapper.readValue(migrationsStatePath.toFile(), new TypeReference<>() {
             });
-
-            System.out.println(this.appliedMigrations.get(STATE_KEY));
-
-            System.out.println(this.appliedMigrations);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
     }
 
-    public void setMigrationsPath(Path migrationsPath) {
-        this.migrationsPath = migrationsPath;
+    public void run(Connector connector) throws JsonProcessingException {
+        List<Migration> migrations = this.prepareMigrations();
+        if (!migrations.isEmpty()) {
+            for (Migration m : migrations) {
+                MigrationResponse response = this.apply(m, connector);
+                if (!response.getState()) {
+                    // log something and throw
+                    break;
+                }
+
+                this.apply(m, connector);
+            }
+        } else {
+            // log something
+        }
     }
 
-    public Path getMigrationsPath() {
-        return migrationsPath;
+    private MigrationResponse apply(Migration migration, Connector connector) throws JsonProcessingException {
+        return this.makeMigration(migration, connector);
+    }
+
+    private MigrationResponse makeMigration(Migration migration, Connector connector) throws JsonProcessingException {
+        String response = connector.makeRequest(this.createMigrationDat(migration.getName(), migration.getQuery()), Enums.Subject.MIGRATE, true);
+
+        return objectMapper.readValue(response, MigrationResponse.class);
+    }
+
+    private String trimFileEnding(Path fileName, String ending) {
+        return fileName.toString().replace(ending, "");
+    }
+
+    private List<Migration> prepareMigrations() {
+        try (Stream<Path> files = Files.list(this.migrationsPath)) {
+            return files
+                    .filter(x -> Files.isRegularFile(x)
+                            && x.getFileName().toString().endsWith(".sql")
+                            && !this.appliedMigrations.get(STATE_KEY).contains(this.trimFileEnding(x.getFileName(), ".sql"))
+                    )
+                    .map(x -> {
+                        try {
+                            return new Migration(this.trimFileEnding(x.getFileName(), ".sql"), Files.readString(x));
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }).toList();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Map<String, Object> createMigrationDat(String name, String query) {
+        return new TokenManager.DatBuilder()
+                .withField("name", name)
+                .withField("query", query)
+                .build();
     }
 
     @Override

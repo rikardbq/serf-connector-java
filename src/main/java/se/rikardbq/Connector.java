@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Connector {
+
     private String fullAddress;
     private String usernameHash;
     private String usernamePasswordHash;
@@ -43,61 +44,68 @@ public class Connector {
         this.usernamePasswordHash = hashedUsernamePassword;
     }
 
+    public TokenManager getTokenManager() {
+        return tokenManager;
+    }
+
     public <T> List<T> query(String query, Object... parts) throws JsonProcessingException {
         FetchResponse<T> qRes = makeQuery(query, parts);
+
         return qRes.getData();
     }
 
     private <T> FetchResponse<T> makeQuery(String query, Object[] parts) throws JsonProcessingException {
-        String token = tokenManager.encodeToken(
-                this.createQueryDat(query, parts),
-                Enums.Subject.FETCH,
-                this.usernamePasswordHash
-        );
-        String response = makeRequest(new TokenPayload(token, null));
-        String json = this.handleResponse(response);
+        String response = this.makeRequest(this.createQueryDat(query, parts), Enums.Subject.FETCH, false);
 
-        return objectMapper.readValue(json, new TypeReference<>() {
+        return objectMapper.readValue(response, new TypeReference<>() {
         });
     }
 
     public long mutate(String query, Object... parts) throws JsonProcessingException {
         MutationResponse mRes = makeMutation(query, parts);
+
         return mRes.getRowsAffected();
     }
 
     private MutationResponse makeMutation(String query, Object[] parts) throws JsonProcessingException {
-        String token = tokenManager.encodeToken(
-                this.createQueryDat(query, parts),
-                Enums.Subject.MUTATE,
-                this.usernamePasswordHash
-        );
-        String response = makeRequest(new TokenPayload(token, null));
-        String json = this.handleResponse(response);
+        String response = this.makeRequest(this.createQueryDat(query, parts), Enums.Subject.MUTATE, false);
 
-        return objectMapper.readValue(json, MutationResponse.class);
+        return objectMapper.readValue(response, MutationResponse.class);
     }
 
-    private String makeRequest(TokenPayload requestBody) throws JsonProcessingException {
+    public String makeRequest(Map<String, Object> dat, Enums.Subject subject, boolean isMigration) throws JsonProcessingException {
+        String token = tokenManager.encodeToken(
+                dat,
+                subject,
+                this.usernamePasswordHash
+        );
+        String response = this.makeRequest(new TokenPayload(token, null), objectMapper, isMigration);
+
+        return this.handleResponse(response);
+    }
+
+    private String handleResponse(String response) throws JsonProcessingException {
+        return this.handleResponse(response, objectMapper, tokenManager);
+    }
+
+    private String makeRequest(TokenPayload requestBody, ObjectMapper objectMapper, boolean isMigration) throws JsonProcessingException {
         String reqBody = objectMapper.writeValueAsString(requestBody);
         try (HttpClient client = HttpClient.newHttpClient()) {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(this.fullAddress))
+                    .uri(URI.create(isMigration ? String.format("%s/m", this.fullAddress) : this.fullAddress))
                     .header("Content-Type", "application/json")
                     .header("u_", this.usernameHash)
                     .POST(HttpRequest.BodyPublishers.ofString(reqBody))
                     .build();
 
-            System.out.println(reqBody);
             HttpResponse<String> res = client.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println(res.body());
             return res.body();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private String handleResponse(String response) throws JsonProcessingException {
+    private String handleResponse(String response, ObjectMapper objectMapper, TokenManager tokenManager) throws JsonProcessingException {
         TokenPayload resToken = objectMapper.readValue(response, TokenPayload.class);
         DecodedJWT decodedJWT = tokenManager.decodeToken(resToken.getPayload(), this.usernamePasswordHash);
         Claim datClaim = decodedJWT.getClaims().get("dat");

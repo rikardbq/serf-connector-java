@@ -7,12 +7,12 @@ public class Migration implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String name;
-    private Object query;
+    private String query;
 
     public Migration() {
     }
 
-    public Migration(String name, Object query) {
+    public Migration(String name, String query) {
         this.name = name;
         this.query = query;
     }
@@ -25,11 +25,11 @@ public class Migration implements Serializable {
         return name;
     }
 
-    public void setQuery(Object query) {
+    public void setQuery(String query) {
         this.query = query;
     }
 
-    public Object getQuery() {
+    public String getQuery() {
         return query;
     }
 
