@@ -1,7 +1,6 @@
 package se.rikardbq;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import se.rikardbq.query.Connector;
 import se.rikardbq.temp.SomeDataClass;
 
 import java.util.List;
@@ -13,6 +12,7 @@ public class Main {
             "test_user",
             "test_pass"
     );
+    static Migrator migrator = new Migrator("./migrations");
 
     static void generateToken() {
 //        try (HttpClient client = HttpClient.newHttpClient()) {

@@ -1,4 +1,4 @@
-package se.rikardbq.query;
+package se.rikardbq;
 
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
