@@ -51,7 +51,11 @@ public class Connector {
     }
 
     private <T> FetchResponse<T> makeQuery(String query, Object[] parts) throws JsonProcessingException {
-        String response = this.makeRequest(this.createQueryDat(query, parts), Enums.Subject.FETCH, false);
+        String response = this.makeRequest(
+                this.createQueryDat(query, parts),
+                Enums.Subject.FETCH,
+                false
+        );
 
         return objectMapper.readValue(response, new TypeReference<>() {
         });
@@ -64,7 +68,11 @@ public class Connector {
     }
 
     private MutationResponse makeMutation(String query, Object[] parts) throws JsonProcessingException {
-        String response = this.makeRequest(this.createQueryDat(query, parts), Enums.Subject.MUTATE, false);
+        String response = this.makeRequest(
+                this.createQueryDat(query, parts),
+                Enums.Subject.MUTATE,
+                false
+        );
 
         return objectMapper.readValue(response, MutationResponse.class);
     }
@@ -75,7 +83,11 @@ public class Connector {
                 subject,
                 this.usernamePasswordHash
         );
-        String response = this.makeRequest(new TokenPayload(token, null), objectMapper, isMigration);
+        String response = this.makeRequest(
+                new TokenPayload(token, null),
+                objectMapper,
+                isMigration
+        );
 
         return this.handleResponse(response);
     }
@@ -88,13 +100,18 @@ public class Connector {
         String reqBody = objectMapper.writeValueAsString(requestBody);
         try (HttpClient client = HttpClient.newHttpClient()) {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(isMigration ? String.format("%s/m", this.fullAddress) : this.fullAddress))
+                    .uri(URI.create(
+                            isMigration
+                                    ? String.format("%s/m", this.fullAddress)
+                                    : this.fullAddress
+                    ))
                     .header("Content-Type", "application/json")
                     .header("u_", this.usernameHash)
                     .POST(HttpRequest.BodyPublishers.ofString(reqBody))
                     .build();
 
             HttpResponse<String> res = client.send(request, HttpResponse.BodyHandlers.ofString());
+
             return res.body();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);

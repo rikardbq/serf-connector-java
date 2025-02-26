@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import se.rikardbq.jwt.TokenManager;
 import se.rikardbq.models.Enums;
 import se.rikardbq.models.MigrationResponse;
 import se.rikardbq.models.migration.Migration;
@@ -83,29 +82,39 @@ public class Migrator {
     }
 
     private MigrationResponse makeMigration(Migration migration, Connector connector) throws JsonProcessingException {
-        String response = connector.makeRequest(this.createMigrationDat(migration.getName(), migration.getQuery()), Enums.Subject.MIGRATE, true);
+        String response = connector.makeRequest(
+                this.createMigrationDat(
+                        migration.getName(),
+                        migration.getQuery()
+                ),
+                Enums.Subject.MIGRATE, true
+        );
 
         return objectMapper.readValue(response, MigrationResponse.class);
     }
 
     private String trimFileEnding(Path fileName, String ending) {
-        return fileName.toString().replace(ending, "");
+        return fileName
+                .toString()
+                .replace(ending, "");
     }
 
     private List<Migration> prepareMigrations() {
         try (Stream<Path> files = Files.list(this.migrationsPath)) {
-            return files
-                    .filter(x -> Files.isRegularFile(x)
+            return files.filter(x ->
+                    Files.isRegularFile(x)
                             && x.getFileName().toString().endsWith(".sql")
                             && !this.appliedMigrations.get(STATE_KEY).contains(this.trimFileEnding(x.getFileName(), ".sql"))
-                    )
-                    .map(x -> {
-                        try {
-                            return new Migration(this.trimFileEnding(x.getFileName(), ".sql"), Files.readString(x));
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }).toList();
+            ).map(x -> {
+                try {
+                    return new Migration(
+                            this.trimFileEnding(x.getFileName(), ".sql"),
+                            Files.readString(x)
+                    );
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }).toList();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
