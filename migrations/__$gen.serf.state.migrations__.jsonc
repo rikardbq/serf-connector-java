@@ -1,8 +1,0 @@
-/* __$gen.serf.state.migrations__ */
-/**
-* THIS FILE IS GENERATED!
-* ------
-* Changing this file may lead to inconsistent state
-* between your application migrations and your database!
-**/
-{"__applied_migrations__":[]}
