@@ -12,7 +12,6 @@ import se.rikardbq.models.migration.Migration;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,13 +39,13 @@ public class Migrator {
     }
 
     public Migrator(String migrationsPath) {
-        this.migrationsPath = Paths.get(migrationsPath);
+        this.migrationsPath = Path.of(migrationsPath);
         try {
             if (!Files.exists(this.migrationsPath)) {
                 Files.createDirectory(this.migrationsPath);
             }
 
-            Path migrationsStatePath = Paths.get(migrationsPath, STATE_FILE);
+            Path migrationsStatePath = Path.of(migrationsPath, STATE_FILE);
             if (!Files.exists(migrationsStatePath)) {
                 Files.createFile(migrationsStatePath);
                 Files.writeString(migrationsStatePath, STATE_FILE_CONTENT_EMPTY);
