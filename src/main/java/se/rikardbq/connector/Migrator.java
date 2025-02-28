@@ -27,10 +27,11 @@ public class Migrator {
             * Changing this file may lead to inconsistent state
             * between your application migrations and your database!
             **/""";
-    private static final String STATE_FILE_CONTENT_EMPTY = String.format("%s\n%s", STATE_FILE_CONTENT_HEADER, "{\"__applied_migrations__\":[]}");
+    private static final String STATE_FILE_CONTENT_EMPTY = Migrator.createStateFileContent("{\"__applied_migrations__\":[]}");
     private static final String STATE_FILE = "__$gen.serf.state.migrations__.jsonc";
     private static final String STATE_KEY = "__applied_migrations__";
-    private Path migrationsPath;
+
+    private String migrationsLocation;
     private Map<String, List<String>> appliedMigrations;
 
     private ObjectMapper objectMapper;
@@ -38,20 +39,21 @@ public class Migrator {
     public Migrator() {
     }
 
-    public Migrator(String migrationsPath) {
-        this.migrationsPath = Path.of(migrationsPath);
+    public Migrator(String migrationsLocation) {
+        this.migrationsLocation = migrationsLocation;
+        Path migrationsPath = Path.of(migrationsLocation);
         try {
-            if (!Files.exists(this.migrationsPath)) {
-                Files.createDirectory(this.migrationsPath);
+            if (!Files.exists(migrationsPath)) {
+                Files.createDirectory(migrationsPath);
             }
 
-            Path migrationsStatePath = Path.of(migrationsPath, STATE_FILE);
+            Path migrationsStatePath = Path.of(migrationsLocation, STATE_FILE);
             if (!Files.exists(migrationsStatePath)) {
                 Files.createFile(migrationsStatePath);
                 Files.writeString(migrationsStatePath, STATE_FILE_CONTENT_EMPTY);
             }
 
-            objectMapper = new ObjectMapper(JsonFactory.builder().configure(JsonReadFeature.ALLOW_JAVA_COMMENTS, true).build());
+            this.objectMapper = new ObjectMapper(JsonFactory.builder().configure(JsonReadFeature.ALLOW_JAVA_COMMENTS, true).build());
             this.appliedMigrations = objectMapper.readValue(migrationsStatePath.toFile(), new TypeReference<>() {
             });
         } catch (Exception ex) {
@@ -59,25 +61,35 @@ public class Migrator {
         }
     }
 
-    public void run(Connector connector) throws JsonProcessingException {
+    private static String createStateFileContent(String content) {
+        return String.format("%s\n%s", STATE_FILE_CONTENT_HEADER, content);
+    }
+
+    public void run(Connector connector) throws Exception {
         List<Migration> migrations = this.prepareMigrations();
         if (!migrations.isEmpty()) {
             for (Migration m : migrations) {
-                MigrationResponse response = this.apply(m, connector);
-                if (!response.getState()) {
-                    // log something and throw
-                    break;
-                }
-
                 this.apply(m, connector);
             }
+
+            Files.writeString(
+                    Path.of(this.migrationsLocation, STATE_FILE),
+                    Migrator.createStateFileContent(objectMapper.writeValueAsString(this.appliedMigrations))
+            );
         } else {
             // log something
+            System.out.println("NO MIGRATIONS");
         }
     }
 
-    private MigrationResponse apply(Migration migration, Connector connector) throws JsonProcessingException {
-        return this.makeMigration(migration, connector);
+    private void apply(Migration migration, Connector connector) throws Exception {
+        MigrationResponse response = this.makeMigration(migration, connector);
+
+        if (!response.getState()) {
+            throw new Exception("Migration failed");
+        }
+
+        this.appliedMigrations.get(STATE_KEY).add(migration.getName());
     }
 
     private MigrationResponse makeMigration(Migration migration, Connector connector) throws JsonProcessingException {
@@ -99,7 +111,7 @@ public class Migrator {
     }
 
     private List<Migration> prepareMigrations() {
-        try (Stream<Path> files = Files.list(this.migrationsPath)) {
+        try (Stream<Path> files = Files.list(Path.of(this.migrationsLocation))) {
             return files.filter(x ->
                     Files.isRegularFile(x)
                             && x.getFileName().toString().endsWith(".sql")
@@ -131,16 +143,16 @@ public class Migrator {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Migrator migrator = (Migrator) o;
-        return Objects.equals(migrationsPath, migrator.migrationsPath);
+        return Objects.equals(migrationsLocation, migrator.migrationsLocation);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(migrationsPath);
+        return Objects.hash(migrationsLocation);
     }
 
     @Override
     public String toString() {
-        return getClass() + " " + "migrationsPath=" + migrationsPath;
+        return getClass() + " " + "migrationsLocation=" + migrationsLocation;
     }
 }
