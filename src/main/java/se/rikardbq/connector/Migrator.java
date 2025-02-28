@@ -71,11 +71,6 @@ public class Migrator {
             for (Migration m : migrations) {
                 this.apply(m, connector);
             }
-
-            Files.writeString(
-                    Path.of(this.migrationsLocation, STATE_FILE),
-                    Migrator.createStateFileContent(objectMapper.writeValueAsString(this.appliedMigrations))
-            );
         } else {
             // log something
             System.out.println("NO MIGRATIONS");
@@ -90,6 +85,10 @@ public class Migrator {
         }
 
         this.appliedMigrations.get(STATE_KEY).add(migration.getName());
+        Files.writeString(
+                Path.of(this.migrationsLocation, STATE_FILE),
+                Migrator.createStateFileContent(objectMapper.writeValueAsString(this.appliedMigrations))
+        );
     }
 
     private MigrationResponse makeMigration(Migration migration, Connector connector) throws JsonProcessingException {
