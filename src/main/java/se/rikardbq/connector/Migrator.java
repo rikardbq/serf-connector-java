@@ -19,15 +19,6 @@ import java.util.stream.Stream;
 
 public class Migrator {
 
-    private static final String STATE_FILE_CONTENT_HEADER = """
-            /* __$gen.serf.state.migrations__ */
-            /**
-            * THIS FILE IS GENERATED!
-            * ------
-            * Changing this file may lead to inconsistent state
-            * between your application migrations and your database!
-            **/""";
-    private static final String STATE_FILE_CONTENT_EMPTY = Migrator.createStateFileContent("{\"__applied_migrations__\":[]}");
     private static final String STATE_FILE = "__$gen.serf.state.migrations__.jsonc";
     private static final String STATE_KEY = "__applied_migrations__";
 
@@ -50,7 +41,7 @@ public class Migrator {
             Path migrationsStatePath = Path.of(migrationsLocation, STATE_FILE);
             if (!Files.exists(migrationsStatePath)) {
                 Files.createFile(migrationsStatePath);
-                Files.writeString(migrationsStatePath, STATE_FILE_CONTENT_EMPTY);
+                this.writeStateFile("{\"__applied_migrations__\":[]}");
             }
 
             this.objectMapper = new ObjectMapper(JsonFactory.builder().configure(JsonReadFeature.ALLOW_JAVA_COMMENTS, true).build());
@@ -59,10 +50,6 @@ public class Migrator {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-    }
-
-    private static String createStateFileContent(String content) {
-        return String.format("%s\n%s", STATE_FILE_CONTENT_HEADER, content);
     }
 
     public void run(Connector connector) throws Exception {
@@ -85,10 +72,7 @@ public class Migrator {
         }
 
         this.appliedMigrations.get(STATE_KEY).add(migration.getName());
-        Files.writeString(
-                Path.of(this.migrationsLocation, STATE_FILE),
-                Migrator.createStateFileContent(objectMapper.writeValueAsString(this.appliedMigrations))
-        );
+        this.writeStateFile(objectMapper.writeValueAsString(this.appliedMigrations));
     }
 
     private MigrationResponse makeMigration(Migration migration, Connector connector) throws JsonProcessingException {
@@ -134,6 +118,22 @@ public class Migrator {
         return Map.ofEntries(
                 Map.entry("name", name),
                 Map.entry("query", query)
+        );
+    }
+
+    private void writeStateFile(String content) throws IOException {
+        String STATE_FILE_CONTENT_HEADER = """
+                /* __$gen.serf.state.migrations__ */
+                /**
+                * THIS FILE IS GENERATED!
+                * ------
+                * Changing this file may lead to inconsistent state
+                * between your application migrations and your database!
+                **/""";
+
+        Files.writeString(
+                Path.of(this.migrationsLocation, STATE_FILE),
+                String.format("%s\n%s", STATE_FILE_CONTENT_HEADER, content)
         );
     }
 
