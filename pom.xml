@@ -12,9 +12,7 @@
 
     <groupId>se.rikardbq</groupId>
     <artifactId>sqlite_server_connector</artifactId>
-    <!-- use this later when i have shell script for deployment -->
-<!--    <version>${env.SQLITE_SERVER_CONNECTOR_JAVA_VER}</version>-->
-    <version>1.0</version>
+    <version>18</version>
 
     <build>
         <plugins>
