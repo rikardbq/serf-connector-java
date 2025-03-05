@@ -4,7 +4,9 @@ TODO:
   - ~~decode token~~
   - ~~includes signing, responseClaims "iat", "exp", "sub" and so on~~
 - ~~manage query / mutate in a simple way~~
-- manage migrations
+- ~~manage migrations~~
 - custom exceptions
-- testing
-- revisit which types are needed and cleanup
+- TESTs
+- CLEANUP
+- add to build server to autodeploy artifacts on master updated
+- 
