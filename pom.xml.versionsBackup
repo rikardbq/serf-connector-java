@@ -12,7 +12,7 @@
 
     <groupId>se.rikardbq</groupId>
     <artifactId>sqlite_server_connector</artifactId>
-    <version>19</version>
+    <version>18</version>
 
     <build>
         <plugins>
