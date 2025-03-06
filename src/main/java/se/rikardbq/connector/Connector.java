@@ -3,7 +3,6 @@ package se.rikardbq.connector;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.digest.DigestUtils;
 import se.rikardbq.jwt.TokenManager;
@@ -44,21 +43,20 @@ public class Connector {
         this.usernamePasswordHash = hashedUsernamePassword;
     }
 
-    public <T> List<T> query(String query, Object... parts) throws JsonProcessingException {
-        FetchResponse<T> qRes = makeQuery(query, parts);
+    public <T> List<T> query(Class<T> typeClass, String query, Object... parts) throws JsonProcessingException {
+        FetchResponse<T> qRes = makeQuery(query, parts, typeClass);
 
         return qRes.getData();
     }
 
-    private <T> FetchResponse<T> makeQuery(String query, Object[] parts) throws JsonProcessingException {
+    private <T> FetchResponse<T> makeQuery(String query, Object[] parts, Class<T> typeClass) throws JsonProcessingException {
         String response = this.makeRequest(
                 this.createQueryDat(query, parts),
                 Enums.Subject.FETCH,
                 false
         );
 
-        return objectMapper.readValue(response, new TypeReference<>() {
-        });
+        return objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(FetchResponse.class, typeClass));
     }
 
     public long mutate(String query, Object... parts) throws JsonProcessingException {
@@ -85,19 +83,14 @@ public class Connector {
         );
         String response = this.makeRequest(
                 new TokenPayload(token, null),
-                objectMapper,
                 isMigration
         );
 
         return this.handleResponse(response);
     }
 
-    private String handleResponse(String response) throws JsonProcessingException {
-        return this.handleResponse(response, objectMapper, tokenManager);
-    }
-
-    private String makeRequest(TokenPayload requestBody, ObjectMapper objectMapper, boolean isMigration) throws JsonProcessingException {
-        String reqBody = objectMapper.writeValueAsString(requestBody);
+    private String makeRequest(TokenPayload requestBody, boolean isMigration) throws JsonProcessingException {
+        String reqBody = this.objectMapper.writeValueAsString(requestBody);
         try (HttpClient client = HttpClient.newHttpClient()) {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(
@@ -118,9 +111,9 @@ public class Connector {
         }
     }
 
-    private String handleResponse(String response, ObjectMapper objectMapper, TokenManager tokenManager) throws JsonProcessingException {
-        TokenPayload resToken = objectMapper.readValue(response, TokenPayload.class);
-        DecodedJWT decodedJWT = tokenManager.decodeToken(resToken.getPayload(), this.usernamePasswordHash);
+    private String handleResponse(String response) throws JsonProcessingException {
+        TokenPayload resToken = this.objectMapper.readValue(response, TokenPayload.class);
+        DecodedJWT decodedJWT = this.tokenManager.decodeToken(resToken.getPayload(), this.usernamePasswordHash);
         Claim datClaim = decodedJWT.getClaims().get("dat");
 
         return datClaim.toString();
