@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import se.rikardbq.exception.TokenPayloadErrorException;
 import se.rikardbq.models.Enums;
 import se.rikardbq.models.MigrationResponse;
 import se.rikardbq.models.migration.Migration;
@@ -22,13 +23,10 @@ public class Migrator {
     private static final String STATE_FILE = "__$gen.serf.state.migrations__.jsonc";
     private static final String STATE_KEY = "__applied_migrations__";
 
-    private String migrationsLocation;
+    private final String migrationsLocation;
     private Map<String, List<String>> appliedMigrations;
 
     private ObjectMapper objectMapper;
-
-    public Migrator() {
-    }
 
     public Migrator(String migrationsLocation) {
         this.migrationsLocation = migrationsLocation;
@@ -44,7 +42,12 @@ public class Migrator {
                 this.writeStateFile("{\"__applied_migrations__\":[]}");
             }
 
-            this.objectMapper = new ObjectMapper(JsonFactory.builder().configure(JsonReadFeature.ALLOW_JAVA_COMMENTS, true).build());
+            this.objectMapper = new ObjectMapper(
+                    JsonFactory.builder().configure(
+                            JsonReadFeature.ALLOW_JAVA_COMMENTS,
+                            true
+                    ).build()
+            );
             this.appliedMigrations = objectMapper.readValue(migrationsStatePath.toFile(), new TypeReference<>() {
             });
         } catch (Exception ex) {
@@ -75,7 +78,7 @@ public class Migrator {
         this.writeStateFile(objectMapper.writeValueAsString(this.appliedMigrations));
     }
 
-    private MigrationResponse makeMigration(Migration migration, Connector connector) throws JsonProcessingException {
+    private MigrationResponse makeMigration(Migration migration, Connector connector) throws JsonProcessingException, TokenPayloadErrorException {
         String response = connector.makeRequest(
                 this.createMigrationDat(
                         migration.getName(),

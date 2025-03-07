@@ -5,6 +5,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.digest.DigestUtils;
+import se.rikardbq.exception.TokenPayloadErrorException;
 import se.rikardbq.jwt.TokenManager;
 import se.rikardbq.models.Enums;
 import se.rikardbq.models.FetchResponse;
@@ -21,15 +22,12 @@ import java.util.Map;
 
 public class Connector {
 
-    private String fullAddress;
-    private String usernameHash;
-    private String usernamePasswordHash;
+    private final String fullAddress;
+    private final String usernameHash;
+    private final String usernamePasswordHash;
 
-    private TokenManager tokenManager;
-    private ObjectMapper objectMapper;
-
-    public Connector() {
-    }
+    private final TokenManager tokenManager;
+    private final ObjectMapper objectMapper;
 
     public Connector(String address, String database, String username, String password) {
         this.tokenManager = new TokenManager();
@@ -43,29 +41,29 @@ public class Connector {
         this.usernamePasswordHash = hashedUsernamePassword;
     }
 
-    public <T> List<T> query(Class<T> typeClass, String query, Object... parts) throws JsonProcessingException {
-        FetchResponse<T> qRes = makeQuery(query, parts, typeClass);
+    public <T> List<T> query(Class<T> valueType, String query, Object... parts) throws JsonProcessingException, TokenPayloadErrorException {
+        FetchResponse<T> qRes = makeQuery(query, parts, valueType);
 
         return qRes.getData();
     }
 
-    private <T> FetchResponse<T> makeQuery(String query, Object[] parts, Class<T> typeClass) throws JsonProcessingException {
+    private <T> FetchResponse<T> makeQuery(String query, Object[] parts, Class<T> valueType) throws JsonProcessingException, TokenPayloadErrorException {
         String response = this.makeRequest(
                 this.createQueryDat(query, parts),
                 Enums.Subject.FETCH,
                 false
         );
 
-        return objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(FetchResponse.class, typeClass));
+        return objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(FetchResponse.class, valueType));
     }
 
-    public long mutate(String query, Object... parts) throws JsonProcessingException {
+    public long mutate(String query, Object... parts) throws JsonProcessingException, TokenPayloadErrorException {
         MutationResponse mRes = makeMutation(query, parts);
 
         return mRes.getRowsAffected();
     }
 
-    private MutationResponse makeMutation(String query, Object[] parts) throws JsonProcessingException {
+    private MutationResponse makeMutation(String query, Object[] parts) throws JsonProcessingException, TokenPayloadErrorException {
         String response = this.makeRequest(
                 this.createQueryDat(query, parts),
                 Enums.Subject.MUTATE,
@@ -75,7 +73,7 @@ public class Connector {
         return objectMapper.readValue(response, MutationResponse.class);
     }
 
-    String makeRequest(Map<String, Object> dat, Enums.Subject subject, boolean isMigration) throws JsonProcessingException {
+    String makeRequest(Map<String, Object> dat, Enums.Subject subject, boolean isMigration) throws JsonProcessingException, TokenPayloadErrorException {
         String token = tokenManager.encodeToken(
                 dat,
                 subject,
@@ -111,8 +109,11 @@ public class Connector {
         }
     }
 
-    private String handleResponse(String response) throws JsonProcessingException {
+    private String handleResponse(String response) throws JsonProcessingException, TokenPayloadErrorException {
         TokenPayload resToken = this.objectMapper.readValue(response, TokenPayload.class);
+        if (resToken.getError() != null) {
+            throw new TokenPayloadErrorException(resToken.getError());
+        }
         DecodedJWT decodedJWT = this.tokenManager.decodeToken(resToken.getPayload(), this.usernamePasswordHash);
         Claim datClaim = decodedJWT.getClaims().get("dat");
 
