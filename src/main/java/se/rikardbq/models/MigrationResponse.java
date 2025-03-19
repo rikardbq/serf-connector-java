@@ -1,9 +1,12 @@
 package se.rikardbq.models;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
 public class MigrationResponse implements Serializable {
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private boolean state;
@@ -15,12 +18,12 @@ public class MigrationResponse implements Serializable {
         this.state = state;
     }
 
-    public void setState(boolean state) {
-        this.state = state;
-    }
-
     public boolean getState() {
         return state;
+    }
+
+    public void setState(boolean state) {
+        this.state = state;
     }
 
     @Override

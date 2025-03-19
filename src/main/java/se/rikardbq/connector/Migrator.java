@@ -48,7 +48,7 @@ public class Migrator {
                             true
                     ).build()
             );
-            this.appliedMigrations = objectMapper.readValue(migrationsStatePath.toFile(), new TypeReference<>() {
+            this.appliedMigrations = this.objectMapper.readValue(migrationsStatePath.toFile(), new TypeReference<>() {
             });
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -75,7 +75,7 @@ public class Migrator {
         }
 
         this.appliedMigrations.get(STATE_KEY).add(migration.getName());
-        this.writeStateFile(objectMapper.writeValueAsString(this.appliedMigrations));
+        this.writeStateFile(this.objectMapper.writeValueAsString(this.appliedMigrations));
     }
 
     private MigrationResponse makeMigration(Migration migration, Connector connector) throws JsonProcessingException, TokenPayloadErrorException {
@@ -87,7 +87,7 @@ public class Migrator {
                 Enums.Subject.MIGRATE, true
         );
 
-        return objectMapper.readValue(response, MigrationResponse.class);
+        return this.objectMapper.readValue(response, MigrationResponse.class);
     }
 
     private String trimFileEnding(Path fileName, String ending) {
@@ -145,16 +145,20 @@ public class Migrator {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Migrator migrator = (Migrator) o;
-        return Objects.equals(migrationsLocation, migrator.migrationsLocation);
+        return Objects.equals(migrationsLocation, migrator.migrationsLocation)
+                && Objects.equals(appliedMigrations, migrator.appliedMigrations)
+                && Objects.equals(objectMapper, migrator.objectMapper);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(migrationsLocation);
+        return Objects.hash(migrationsLocation, appliedMigrations, objectMapper);
     }
 
-    @Override
-    public String toString() {
-        return getClass() + " " + "migrationsLocation=" + migrationsLocation;
-    }
+//    enable this for debug purposes
+//    @Override
+//    public String toString() {
+//        return getClass() + " " + "migrationsLocation=" + migrationsLocation + ", appliedMigrations=" + appliedMigrations
+//                + ", objectMapper=" + objectMapper;
+//    }
 }

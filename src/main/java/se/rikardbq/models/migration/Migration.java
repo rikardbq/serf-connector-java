@@ -1,9 +1,12 @@
 package se.rikardbq.models.migration;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
 public class Migration implements Serializable {
+    
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private String name;
@@ -17,20 +20,20 @@ public class Migration implements Serializable {
         this.query = query;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getName() {
         return name;
     }
 
-    public void setQuery(String query) {
-        this.query = query;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getQuery() {
         return query;
+    }
+
+    public void setQuery(String query) {
+        this.query = query;
     }
 
     @Override

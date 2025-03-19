@@ -2,10 +2,13 @@ package se.rikardbq.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
 public class MutationResponse implements Serializable {
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @JsonProperty("rows_affected")
@@ -21,20 +24,20 @@ public class MutationResponse implements Serializable {
         this.lastInsertRowId = lastInsertRowId;
     }
 
-    public void setRowsAffected(long rowsAffected) {
-        this.rowsAffected = rowsAffected;
-    }
-
     public long getRowsAffected() {
         return rowsAffected;
     }
 
-    public void setLastInsertRowId(long lastInsertRowId) {
-        this.lastInsertRowId = lastInsertRowId;
+    public void setRowsAffected(long rowsAffected) {
+        this.rowsAffected = rowsAffected;
     }
 
     public long getLastInsertRowId() {
         return lastInsertRowId;
+    }
+
+    public void setLastInsertRowId(long lastInsertRowId) {
+        this.lastInsertRowId = lastInsertRowId;
     }
 
     @Override

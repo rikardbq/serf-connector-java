@@ -19,6 +19,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class Connector {
 
@@ -54,7 +55,7 @@ public class Connector {
                 false
         );
 
-        return objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(FetchResponse.class, valueType));
+        return this.objectMapper.readValue(response, this.objectMapper.getTypeFactory().constructParametricType(FetchResponse.class, valueType));
     }
 
     public long mutate(String query, Object... parts) throws JsonProcessingException, TokenPayloadErrorException {
@@ -70,11 +71,11 @@ public class Connector {
                 false
         );
 
-        return objectMapper.readValue(response, MutationResponse.class);
+        return this.objectMapper.readValue(response, MutationResponse.class);
     }
 
     String makeRequest(Map<String, Object> dat, Enums.Subject subject, boolean isMigration) throws JsonProcessingException, TokenPayloadErrorException {
-        String token = tokenManager.encodeToken(
+        String token = this.tokenManager.encodeToken(
                 dat,
                 subject,
                 this.usernamePasswordHash
@@ -126,4 +127,28 @@ public class Connector {
                 Map.entry("parts", List.of(parts))
         );
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Connector connector = (Connector) o;
+        return Objects.equals(fullAddress, connector.fullAddress)
+                && Objects.equals(usernameHash, connector.usernameHash)
+                && Objects.equals(usernamePasswordHash, connector.usernamePasswordHash)
+                && Objects.equals(tokenManager, connector.tokenManager)
+                && Objects.equals(objectMapper, connector.objectMapper);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fullAddress, usernameHash, usernamePasswordHash, tokenManager, objectMapper);
+    }
+
+//    enable this for debug purposes
+//    @Override
+//    public String toString() {
+//        return getClass() + " " + "fullAddress=" + fullAddress + ", usernameHash=" + usernameHash
+//                + ", usernamePasswordHash=" + usernamePasswordHash + ", tokenManager=" + tokenManager + ", objectMapper=" + objectMapper;
+//    }
 }

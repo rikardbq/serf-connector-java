@@ -1,10 +1,13 @@
 package se.rikardbq.models;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
 public class TokenPayloadError implements Serializable {
-    private static long serialVersionUID = 1L;
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private String message;
     private String source;
@@ -17,20 +20,20 @@ public class TokenPayloadError implements Serializable {
         this.source = source;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
     public String getMessage() {
         return message;
     }
 
-    public void setSource(String source) {
-        this.source = source;
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public String getSource() {
         return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 
     @Override

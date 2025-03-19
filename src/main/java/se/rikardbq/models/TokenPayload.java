@@ -2,11 +2,14 @@ package se.rikardbq.models;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TokenPayload implements Serializable {
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private String payload;
@@ -20,20 +23,20 @@ public class TokenPayload implements Serializable {
         this.error = error;
     }
 
-    public void setPayload(String payload) {
-        this.payload = payload;
-    }
-
     public String getPayload() {
         return payload;
     }
 
-    public void setError(TokenPayloadError error) {
-        this.error = error;
+    public void setPayload(String payload) {
+        this.payload = payload;
     }
 
     public TokenPayloadError getError() {
         return error;
+    }
+
+    public void setError(TokenPayloadError error) {
+        this.error = error;
     }
 
     @Override
