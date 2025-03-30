@@ -12,6 +12,7 @@ import se.rikardbq.models.FetchResponse;
 import se.rikardbq.models.MutationResponse;
 import se.rikardbq.models.TokenPayload;
 import se.rikardbq.proto.ProtoManager;
+import se.rikardbq.proto.ProtoRequest;
 
 import java.io.IOException;
 import java.net.URI;
@@ -131,61 +132,61 @@ public class Connector {
         );
     }
 
-//    String makeRequest_2(Map<String, Object> dat, Enums.Subject subject, boolean isMigration) throws Exception {
-//        ProtoPackage protoPackage = this.protoManager.encodeProto(dat, ClaimsOuterClass.Sub.FETCH, this.usernamePasswordHash);
-//        HttpResponse<byte[]> response = this.makeRequest_2(
-//                new TokenPayload(token, null),
-//                isMigration
-//        );
-//
-//        byte[] body = response.body();
-//        String signature = response.headers().firstValue("0").orElseThrow(() -> new Exception("signature header missing error"));
-//
-//        return this.handleResponse_2(body, signature);
-//    }
-//
-//    private HttpResponse<byte[]> makeRequest_2(TokenPayload requestBody, boolean isMigration) throws JsonProcessingException {
-//        String reqBody = this.objectMapper.writeValueAsString(requestBody);
-//        try (HttpClient client = HttpClient.newHttpClient()) {
-//            HttpRequest request = HttpRequest.newBuilder()
-//                    .uri(URI.create(
-//                            isMigration
-//                                    ? String.format("%s/m", this.fullAddress)
-//                                    : this.fullAddress
-//                    ))
-//                    .header("Content-Type", "application/protobuf")
-//                    .header("u_", this.usernameHash)
-//                    .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-//                    .build();
-//
-//            return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-//        } catch (IOException | InterruptedException e) {
-//            throw new RuntimeException(e);
+    String makeRequest_2(Map<String, Object> dat, Enums.Subject subject, boolean isMigration) throws Exception {
+        ProtoPackage protoPackage = this.protoManager.encodeProto(dat, ClaimsOuterClass.Sub.FETCH, this.usernamePasswordHash);
+        HttpResponse<byte[]> response = this.makeRequest_2(
+                new TokenPayload(token, null),
+                isMigration
+        );
+
+        byte[] body = response.body();
+        String signature = response.headers().firstValue("0").orElseThrow(() -> new Exception("signature header missing error"));
+
+        return this.handleResponse_2(body, signature);
+    }
+
+    private HttpResponse<byte[]> makeRequest_2(TokenPayload requestBody, boolean isMigration) throws JsonProcessingException {
+        String reqBody = this.objectMapper.writeValueAsString(requestBody);
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(
+                            isMigration
+                                    ? String.format("%s/m", this.fullAddress)
+                                    : this.fullAddress
+                    ))
+                    .header("Content-Type", "application/protobuf")
+                    .header("u_", this.usernameHash)
+                    .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+                    .build();
+
+            return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String handleResponse_2(byte[] body, String signature) throws Exception {
+
+        // may need to break this into what the JWT version did, basically use a proto that holds my claims as a field
+        // and an error field where the error types are mirrored between here and server.
+
+        /*
+        message ProtoRequest {
+          optional Claims claims
+          optional Error error
+        }
+         */
+        // deserialize the proto, if error exists rethrow the error as a user-facing error type that can work as some sort of catch all
+        //
+        ProtoRequest.Request response = this.protoManager.decodeProto(body, this.usernamePasswordHash, signature);
+//        if (resClaims.getError() != null) {
+//            throw new TokenPayloadErrorException(resToken.getError());
 //        }
-//    }
-//
-//    private String handleResponse_2(byte[] body, String signature) throws Exception {
-//
-//        // may need to break this into what the JWT version did, basically use a proto that holds my claims as a field
-//        // and an error field where the error types are mirrored between here and server.
-//
-//        /*
-//        message ProtoRequest {
-//          optional Claims claims
-//          optional Error error
-//        }
-//         */
-//        // deserialize the proto, if error exists rethrow the error as a user-facing error type that can work as some sort of catch all
-//        //
-//        ClaimsOuterClass.Claims resClaims = this.protoManager.decodeProto(body, this.usernamePasswordHash, signature);
-////        if (resClaims.getError() != null) {
-////            throw new TokenPayloadErrorException(resToken.getError());
-////        }
-//        DecodedJWT decodedJWT = this.tokenManager.decodeToken(resToken.getPayload(), this.usernamePasswordHash);
-//        Claim datClaim = decodedJWT.getClaims().get("dat");
-//
-//        return datClaim.toString();
-//    }
+        DecodedJWT decodedJWT = this.tokenManager.decodeToken(resToken.getPayload(), this.usernamePasswordHash);
+        Claim datClaim = decodedJWT.getClaims().get("dat");
+
+        return datClaim.toString();
+    }
 
     @Override
     public boolean equals(Object o) {

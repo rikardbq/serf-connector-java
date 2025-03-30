@@ -34,7 +34,7 @@ public class ProtoManager {
                 .sign(secret);
     }
 
-    public ProtoRequest.Claims decodeProto(byte[] data, String secret, String signature) throws Exception {
+    public ProtoRequest.Request decodeProto(byte[] data, String secret, String signature) throws Exception {
         ProtoPackageVerifier protoPackageVerifier = new ProtoPackageVerifier.Builder()
                 .withIssuer(ClaimsUtil.Iss.SERVER)
                 .withSubject(ClaimsUtil.Sub.DATA)

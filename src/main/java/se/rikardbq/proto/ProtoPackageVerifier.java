@@ -1,5 +1,8 @@
 package se.rikardbq.proto;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import se.rikardbq.exception.*;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Objects;
@@ -22,29 +25,35 @@ public class ProtoPackageVerifier {
         return Objects.equals(signature, ProtoPackageUtil.generateSignature(data, secret));
     }
 
-    public ProtoRequest.Claims verify(byte[] data) throws Exception {
+    public ProtoRequest.Request verify(byte[] data) throws ProtoPackageVerifyErrorException, InvalidProtocolBufferException {
         if (!verifySignature(data, this.signature, this.secret.getBytes(StandardCharsets.UTF_8))) {
-            throw new Exception("verify error");
+            throw new ProtoRequestInvalidSignatureErrorException();
         }
 
-        ProtoRequest.Claims claims = ProtoRequest.Claims.newBuilder()
+        ProtoRequest.Request request = ProtoRequest.Request.newBuilder()
                 .mergeFrom(data)
                 .build();
 
+        if (request.hasError()) {
+            throw new ProtoRequestServerErrorException(request.getError());
+        }
+
+        ProtoRequest.Claims claims = request.getClaims();
+
         if (Objects.nonNull(this.sub) && claims.getSub() != this.sub) {
-            throw new Exception("verify subject error");
+            throw new ProtoPackageInvalidSubject();
         }
 
         if (Objects.nonNull(this.iss) && claims.getIss() != this.iss) {
-            throw new Exception("verify issuer error");
+            throw new ProtoPackageInvalidIssuer();
         }
 
         Instant now = Instant.now();
         if (now.getEpochSecond() > claims.getExp()) {
-            throw new Exception("verify expiration error");
+            throw new ProtoPackageClaimsExpiredException();
         }
 
-        return claims;
+        return request;
     }
 
     public static class Builder {
