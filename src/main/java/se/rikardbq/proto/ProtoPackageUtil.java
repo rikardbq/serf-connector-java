@@ -1,4 +1,4 @@
-package proto;
+package se.rikardbq.proto;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.digest.HmacAlgorithms;
@@ -6,7 +6,7 @@ import org.apache.commons.codec.digest.HmacUtils;
 
 import javax.crypto.Mac;
 
-public class ProtoUtil {
+public class ProtoPackageUtil {
 
     public static String generateSignature(byte[] data, byte[] secret) {
         Mac mac = HmacUtils.getInitializedMac(HmacAlgorithms.HMAC_SHA_256, secret);

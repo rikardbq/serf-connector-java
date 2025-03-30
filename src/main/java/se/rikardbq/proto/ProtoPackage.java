@@ -1,8 +1,4 @@
-package proto;
-
-import serf_proto.ClaimsOuterClass;
-import serf_proto.MigrationRequestOuterClass;
-import serf_proto.QueryRequestOuterClass;
+package se.rikardbq.proto;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -15,7 +11,7 @@ public class ProtoPackage {
 
     private ProtoPackage(byte[] data, byte[] secret) {
         this.data = data;
-        this.signature = ProtoUtil.generateSignature(data, secret);
+        this.signature = ProtoPackageUtil.generateSignature(data, secret);
     }
 
     public byte[] getData() {
@@ -28,7 +24,7 @@ public class ProtoPackage {
 
     public static class Builder {
         private Object dat;
-        private ClaimsOuterClass.Sub sub = ClaimsOuterClass.Sub.UNRECOGNIZED;
+        private ClaimsUtil.Sub sub = ClaimsUtil.Sub.UNRECOGNIZED;
 
         public ProtoPackage.Builder withData(Object dat) {
             this.dat = dat;
@@ -36,14 +32,14 @@ public class ProtoPackage {
             return this;
         }
 
-        public ProtoPackage.Builder withSubject(ClaimsOuterClass.Sub sub) {
+        public ProtoPackage.Builder withSubject(ClaimsUtil.Sub sub) {
             this.sub = sub;
 
             return this;
         }
 
         public ProtoPackage sign(String secret) throws Exception {
-            if (this.sub == ClaimsOuterClass.Sub.UNRECOGNIZED) {
+            if (this.sub == ClaimsUtil.Sub.UNRECOGNIZED) {
                 throw new Exception("no subject error");
             }
 
@@ -51,10 +47,10 @@ public class ProtoPackage {
                 throw new Exception("no secret error");
             }
 
-            ClaimsOuterClass.Claims.Builder claimsBuilder = ClaimsOuterClass.Claims.newBuilder();
+            ProtoRequest.Claims.Builder claimsBuilder = ProtoRequest.Claims.newBuilder();
             Instant now = Instant.now();
             claimsBuilder
-                    .setIss(ClaimsOuterClass.Iss.CLIENT)
+                    .setIss(ClaimsUtil.Iss.CLIENT)
                     .setSub(sub)
                     .setIat(now.getEpochSecond())
                     .setExp(now.plusSeconds(30).getEpochSecond());
@@ -64,8 +60,8 @@ public class ProtoPackage {
 //            case FetchResponseOuterClass.FetchResponse v -> claimsBuilder.setFetchResponse(v);
 //            case MigrationResponseOuterClass.MigrationResponse v -> claimsBuilder.setMigrationResponse(v);
 //            case MutationResponseOuterClass.MutationResponse v -> claimsBuilder.setMutationResponse(v);
-                case MigrationRequestOuterClass.MigrationRequest v -> claimsBuilder.setMigrationRequest(v);
-                case QueryRequestOuterClass.QueryRequest v -> claimsBuilder.setQueryRequest(v);
+                case ClaimsUtil.MigrationRequest v -> claimsBuilder.setMigrationRequest(v);
+                case ClaimsUtil.QueryRequest v -> claimsBuilder.setQueryRequest(v);
                 default -> throw new Exception("dat type error"); // replace this with something more intuitive
             }
 

@@ -1,6 +1,4 @@
-package proto;
-
-import serf_proto.ClaimsOuterClass;
+package se.rikardbq.proto;
 
 public class ProtoManager {
 
@@ -27,7 +25,7 @@ public class ProtoManager {
     // ProtoPackageBuilder has a small set of methods that basically abstracts the ClaimsBuilder functions as masks them as its own
     // .sign should more or less only sign the claims proto bytes with a secret and set its signature field
     // as a user of the lib i will get a ProtoPackage and call for the claims and signature separately and add to where needed in the request.
-    public ProtoPackage encodeProto(Object dat, ClaimsOuterClass.Sub sub, String secret) throws Exception {
+    public ProtoPackage encodeProto(Object dat, ClaimsUtil.Sub sub, String secret) throws Exception {
         ProtoPackage.Builder protoPackageBuilder = new ProtoPackage.Builder();
 
         return protoPackageBuilder
@@ -36,10 +34,10 @@ public class ProtoManager {
                 .sign(secret);
     }
 
-    public ClaimsOuterClass.Claims decodeProto(byte[] data, String secret, String signature) throws Exception {
+    public ProtoRequest.Claims decodeProto(byte[] data, String secret, String signature) throws Exception {
         ProtoPackageVerifier protoPackageVerifier = new ProtoPackageVerifier.Builder()
-                .withIssuer(ClaimsOuterClass.Iss.SERVER)
-                .withSubject(ClaimsOuterClass.Sub.DATA)
+                .withIssuer(ClaimsUtil.Iss.SERVER)
+                .withSubject(ClaimsUtil.Sub.DATA)
                 .withSecret(secret)
                 .withSignature(signature)
                 .build();

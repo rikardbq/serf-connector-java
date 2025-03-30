@@ -1,6 +1,4 @@
-package proto;
-
-import serf_proto.ClaimsOuterClass;
+package se.rikardbq.proto;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -10,10 +8,10 @@ public class ProtoPackageVerifier {
 
     private final String signature;
     private final String secret;
-    private final ClaimsOuterClass.Sub sub;
-    private final ClaimsOuterClass.Iss iss;
+    private final ClaimsUtil.Sub sub;
+    private final ClaimsUtil.Iss iss;
 
-    private ProtoPackageVerifier(String signature, String secret, ClaimsOuterClass.Sub sub, ClaimsOuterClass.Iss iss) {
+    private ProtoPackageVerifier(String signature, String secret, ClaimsUtil.Sub sub, ClaimsUtil.Iss iss) {
         this.signature = signature;
         this.secret = secret;
         this.sub = sub;
@@ -21,15 +19,15 @@ public class ProtoPackageVerifier {
     }
 
     private boolean verifySignature(byte[] data, String signature, byte[] secret) {
-        return Objects.equals(signature, ProtoUtil.generateSignature(data, secret));
+        return Objects.equals(signature, ProtoPackageUtil.generateSignature(data, secret));
     }
 
-    public ClaimsOuterClass.Claims verify(byte[] data) throws Exception {
+    public ProtoRequest.Claims verify(byte[] data) throws Exception {
         if (!verifySignature(data, this.signature, this.secret.getBytes(StandardCharsets.UTF_8))) {
             throw new Exception("verify error");
         }
 
-        ClaimsOuterClass.Claims claims = ClaimsOuterClass.Claims.newBuilder()
+        ProtoRequest.Claims claims = ProtoRequest.Claims.newBuilder()
                 .mergeFrom(data)
                 .build();
 
@@ -53,8 +51,8 @@ public class ProtoPackageVerifier {
 
         private String signature;
         private String secret;
-        private ClaimsOuterClass.Sub sub;
-        private ClaimsOuterClass.Iss iss;
+        private ClaimsUtil.Sub sub;
+        private ClaimsUtil.Iss iss;
 
         public ProtoPackageVerifier.Builder withSecret(String secret) {
             this.secret = secret;
@@ -68,13 +66,13 @@ public class ProtoPackageVerifier {
             return this;
         }
 
-        public ProtoPackageVerifier.Builder withSubject(ClaimsOuterClass.Sub sub) {
+        public ProtoPackageVerifier.Builder withSubject(ClaimsUtil.Sub sub) {
             this.sub = sub;
 
             return this;
         }
 
-        public ProtoPackageVerifier.Builder withIssuer(ClaimsOuterClass.Iss iss) {
+        public ProtoPackageVerifier.Builder withIssuer(ClaimsUtil.Iss iss) {
             this.iss = iss;
 
             return this;
