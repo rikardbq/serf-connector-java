@@ -1,5 +1,8 @@
 package se.rikardbq.proto;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import se.rikardbq.exception.ProtoPackageVerifyErrorException;
+
 public class ProtoManager {
 
     public ProtoManager() {
@@ -34,7 +37,7 @@ public class ProtoManager {
                 .sign(secret);
     }
 
-    public ProtoRequest.Request decodeProto(byte[] data, String secret, String signature) throws Exception {
+    public ProtoRequest.Request decodeProto(byte[] data, String secret, String signature) throws ProtoPackageVerifyErrorException, InvalidProtocolBufferException {
         ProtoPackageVerifier protoPackageVerifier = new ProtoPackageVerifier.Builder()
                 .withIssuer(ClaimsUtil.Iss.SERVER)
                 .withSubject(ClaimsUtil.Sub.DATA)

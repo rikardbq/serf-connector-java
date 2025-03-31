@@ -64,8 +64,10 @@ public class ProtoPackage {
                 case ClaimsUtil.QueryRequest v -> claimsBuilder.setQueryRequest(v);
                 default -> throw new Exception("dat type error"); // replace this with something more intuitive
             }
+            ProtoRequest.Request.Builder protoRequestBuilder = ProtoRequest.Request.newBuilder();
+            protoRequestBuilder.setClaims(claimsBuilder.build());
 
-            return new ProtoPackage(claimsBuilder.build().toByteArray(), secret.getBytes(StandardCharsets.UTF_8));
+            return new ProtoPackage(protoRequestBuilder.build().toByteArray(), secret.getBytes(StandardCharsets.UTF_8));
         }
     }
 }

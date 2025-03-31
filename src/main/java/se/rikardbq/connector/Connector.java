@@ -4,14 +4,20 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.digest.DigestUtils;
+import se.rikardbq.exception.ProtoPackageVerifyErrorException;
 import se.rikardbq.exception.TokenPayloadErrorException;
+import se.rikardbq.exception.UnknownQueryArgTypeException;
 import se.rikardbq.jwt.TokenManager;
 import se.rikardbq.models.Enums;
 import se.rikardbq.models.FetchResponse;
 import se.rikardbq.models.MutationResponse;
 import se.rikardbq.models.TokenPayload;
+import se.rikardbq.proto.ClaimsUtil;
 import se.rikardbq.proto.ProtoManager;
+import se.rikardbq.proto.ProtoPackage;
 import se.rikardbq.proto.ProtoRequest;
 
 import java.io.IOException;
@@ -22,6 +28,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class Connector {
 
@@ -52,6 +59,10 @@ public class Connector {
         return qRes.getData();
     }
 
+    public <T> List<T> query_2(Class<T> valueType, String query, Object... parts) throws Exception {
+        return makeQuery_2(query, parts, valueType);
+    }
+
     private <T> FetchResponse<T> makeQuery(String query, Object[] parts, Class<T> valueType) throws JsonProcessingException, TokenPayloadErrorException {
         String response = this.makeRequest(
                 this.createQueryDat(query, parts),
@@ -60,6 +71,23 @@ public class Connector {
         );
 
         return this.objectMapper.readValue(response, this.objectMapper.getTypeFactory().constructParametricType(FetchResponse.class, valueType));
+    }
+
+    private <T> List<T> makeQuery_2(String query, Object[] parts, Class<T> valueType) throws Exception {
+        ClaimsUtil.QueryRequest.Builder queryRequestBuilder = ClaimsUtil.QueryRequest.newBuilder()
+                .setQuery(query)
+                .addAllParts(this.mapPartsToQueryArgs(parts));
+
+        ClaimsUtil.FetchResponse response = (ClaimsUtil.FetchResponse) this.makeRequest_2(
+                queryRequestBuilder.build(),
+                ClaimsUtil.Sub.FETCH,
+                false
+        );
+
+        return this.objectMapper.readValue(
+                response.getData().toByteArray(),
+                this.objectMapper.getTypeFactory().constructParametricType(List.class, valueType)
+        );
     }
 
     public long mutate(String query, Object... parts) throws JsonProcessingException, TokenPayloadErrorException {
@@ -132,10 +160,24 @@ public class Connector {
         );
     }
 
-    String makeRequest_2(Map<String, Object> dat, Enums.Subject subject, boolean isMigration) throws Exception {
-        ProtoPackage protoPackage = this.protoManager.encodeProto(dat, ClaimsOuterClass.Sub.FETCH, this.usernamePasswordHash);
+    private List<ClaimsUtil.QueryArg> mapPartsToQueryArgs(Object[] parts) {
+        ClaimsUtil.QueryArg.Builder queryArgsBuilder = ClaimsUtil.QueryArg.newBuilder();
+
+        return Stream.of(parts).map(x -> switch (x) {
+            case Integer v -> queryArgsBuilder.setInt(v).build();
+            case Long v -> queryArgsBuilder.setInt(v).build();
+            case Float v -> queryArgsBuilder.setFloat(v).build();
+            case Double v -> queryArgsBuilder.setFloat(v).build();
+            case String v -> queryArgsBuilder.setString(v).build();
+            case byte[] v -> queryArgsBuilder.setBlob(ByteString.copyFrom(v)).build();
+            default -> throw new UnknownQueryArgTypeException();
+        }).toList();
+    }
+
+    Object makeRequest_2(ClaimsUtil.QueryRequest dat, ClaimsUtil.Sub subject, boolean isMigration) throws Exception {
+        ProtoPackage protoPackage = this.protoManager.encodeProto(dat, subject, this.usernamePasswordHash);
         HttpResponse<byte[]> response = this.makeRequest_2(
-                new TokenPayload(token, null),
+                protoPackage,
                 isMigration
         );
 
@@ -145,18 +187,18 @@ public class Connector {
         return this.handleResponse_2(body, signature);
     }
 
-    private HttpResponse<byte[]> makeRequest_2(TokenPayload requestBody, boolean isMigration) throws JsonProcessingException {
-        String reqBody = this.objectMapper.writeValueAsString(requestBody);
+    private HttpResponse<byte[]> makeRequest_2(ProtoPackage protoPackage, boolean isMigration) throws JsonProcessingException {
         try (HttpClient client = HttpClient.newHttpClient()) {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(
                             isMigration
                                     ? String.format("%s/m", this.fullAddress)
-                                    : this.fullAddress
+                                    : "http://localhost:8080/test/testing_proto"//this.fullAddress
                     ))
                     .header("Content-Type", "application/protobuf")
-                    .header("u_", this.usernameHash)
-                    .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+                    .header("0", this.usernameHash)
+                    .header("1", protoPackage.getSignature())
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(protoPackage.getData()))
                     .build();
 
             return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
@@ -165,27 +207,15 @@ public class Connector {
         }
     }
 
-    private String handleResponse_2(byte[] body, String signature) throws Exception {
-
-        // may need to break this into what the JWT version did, basically use a proto that holds my claims as a field
-        // and an error field where the error types are mirrored between here and server.
-
-        /*
-        message ProtoRequest {
-          optional Claims claims
-          optional Error error
-        }
-         */
-        // deserialize the proto, if error exists rethrow the error as a user-facing error type that can work as some sort of catch all
-        //
+    private Object handleResponse_2(byte[] body, String signature) throws ProtoPackageVerifyErrorException, InvalidProtocolBufferException {
         ProtoRequest.Request response = this.protoManager.decodeProto(body, this.usernamePasswordHash, signature);
-//        if (resClaims.getError() != null) {
-//            throw new TokenPayloadErrorException(resToken.getError());
-//        }
-        DecodedJWT decodedJWT = this.tokenManager.decodeToken(resToken.getPayload(), this.usernamePasswordHash);
-        Claim datClaim = decodedJWT.getClaims().get("dat");
-
-        return datClaim.toString();
+        ProtoRequest.Claims claims = response.getClaims();
+        return switch (claims.getDatCase()) {
+            case ProtoRequest.Claims.DatCase.FETCHRESPONSE -> claims.getFetchResponse();
+            case ProtoRequest.Claims.DatCase.MUTATIONRESPONSE -> claims.getMutationResponse();
+            case ProtoRequest.Claims.DatCase.MIGRATIONRESPONSE -> claims.getMigrationResponse();
+            default -> null;
+        };
     }
 
     @Override

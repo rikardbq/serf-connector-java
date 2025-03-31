@@ -32,7 +32,7 @@ message QueryRequest {
 }
 
 message FetchResponse {
-  repeated bytes data = 1; // json data will be serialized to byte[]
+  bytes data = 1; //Json from the server
 }
 
 message MutationResponse {
