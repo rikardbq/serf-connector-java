@@ -1,4 +1,4 @@
-package se.rikardbq.models.migration;
+package se.rikardbq.models;
 
 import java.io.Serial;
 import java.io.Serializable;

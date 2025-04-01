@@ -8,7 +8,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import se.rikardbq.exception.MigrationFailedException;
 import se.rikardbq.exception.MissingHeaderException;
 import se.rikardbq.exception.ProtoPackageErrorException;
-import se.rikardbq.models.migration.Migration;
+import se.rikardbq.models.Migration;
 import se.rikardbq.proto.ClaimsUtil;
 
 import java.io.IOException;

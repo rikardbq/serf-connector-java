@@ -61,9 +61,6 @@ public class ProtoPackage {
                     .setExp(now.plusSeconds(30).getEpochSecond());
 
             switch (this.dat) {
-//            case FetchResponseOuterClass.FetchResponse v -> claimsBuilder.setFetchResponse(v);
-//            case MigrationResponseOuterClass.MigrationResponse v -> claimsBuilder.setMigrationResponse(v);
-//            case MutationResponseOuterClass.MutationResponse v -> claimsBuilder.setMutationResponse(v);
                 case ClaimsUtil.MigrationRequest v -> claimsBuilder.setMigrationRequest(v);
                 case ClaimsUtil.QueryRequest v -> claimsBuilder.setQueryRequest(v);
                 default -> throw new ProtoPackageUnexpectedDatTypeException();

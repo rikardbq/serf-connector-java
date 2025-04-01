@@ -8,7 +8,6 @@ import se.rikardbq.exception.MissingHeaderException;
 import se.rikardbq.exception.ProtoPackageErrorException;
 import se.rikardbq.exception.UnknownQueryArgTypeException;
 import se.rikardbq.exception.UnknownRequestDatTypeException;
-import se.rikardbq.jwt.TokenManager;
 import se.rikardbq.proto.ClaimsUtil;
 import se.rikardbq.proto.ProtoManager;
 import se.rikardbq.proto.ProtoPackage;
@@ -29,12 +28,10 @@ public class Connector {
     private final String usernameHash;
     private final String usernamePasswordHash;
 
-    private final TokenManager tokenManager;
     private final ProtoManager protoManager;
     private final ObjectMapper objectMapper;
 
     public Connector(String address, String database, String username, String password) {
-        this.tokenManager = new TokenManager();
         this.protoManager = new ProtoManager();
         this.objectMapper = new ObjectMapper();
         String hashedDatabase = DigestUtils.sha256Hex(database);
@@ -154,13 +151,13 @@ public class Connector {
         return Objects.equals(fullAddress, connector.fullAddress)
                 && Objects.equals(usernameHash, connector.usernameHash)
                 && Objects.equals(usernamePasswordHash, connector.usernamePasswordHash)
-                && Objects.equals(tokenManager, connector.tokenManager)
+                && Objects.equals(protoManager, connector.protoManager)
                 && Objects.equals(objectMapper, connector.objectMapper);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(fullAddress, usernameHash, usernamePasswordHash, tokenManager, objectMapper);
+        return Objects.hash(fullAddress, usernameHash, usernamePasswordHash, protoManager, objectMapper);
     }
 
 //    enable this for debug purposes
