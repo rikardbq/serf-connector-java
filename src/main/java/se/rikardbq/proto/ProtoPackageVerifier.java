@@ -41,11 +41,11 @@ public class ProtoPackageVerifier {
         ProtoRequest.Claims claims = request.getClaims();
 
         if (Objects.nonNull(this.sub) && claims.getSub() != this.sub) {
-            throw new ProtoPackageInvalidSubject();
+            throw new ProtoPackageInvalidSubjectException();
         }
 
         if (Objects.nonNull(this.iss) && claims.getIss() != this.iss) {
-            throw new ProtoPackageInvalidIssuer();
+            throw new ProtoPackageInvalidIssuerException();
         }
 
         Instant now = Instant.now();

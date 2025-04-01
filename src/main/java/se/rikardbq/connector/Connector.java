@@ -175,7 +175,7 @@ public class Connector {
     }
 
     Object makeRequest_2(ClaimsUtil.QueryRequest dat, ClaimsUtil.Sub subject, boolean isMigration) throws Exception {
-        ProtoPackage protoPackage = this.protoManager.encodeProto(dat, subject, this.usernamePasswordHash);
+        ProtoPackage protoPackage = this.protoManager.encodeProto(dat, subject, this.usernamePasswordHash);//this.usernamePasswordHash);
         HttpResponse<byte[]> response = this.makeRequest_2(
                 protoPackage,
                 isMigration
@@ -193,7 +193,7 @@ public class Connector {
                     .uri(URI.create(
                             isMigration
                                     ? String.format("%s/m", this.fullAddress)
-                                    : "http://localhost:8080/test/testing_proto"//this.fullAddress
+                                    : this.fullAddress
                     ))
                     .header("Content-Type", "application/protobuf")
                     .header("0", this.usernameHash)

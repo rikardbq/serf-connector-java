@@ -1,5 +1,9 @@
 package se.rikardbq.proto;
 
+import se.rikardbq.exception.ProtoPackageInvalidSubjectException;
+import se.rikardbq.exception.ProtoPackageNoSecretException;
+import se.rikardbq.exception.ProtoPackageUnexpectedDatTypeException;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Objects;
@@ -9,9 +13,9 @@ public class ProtoPackage {
     private final byte[] data;
     private final String signature;
 
-    private ProtoPackage(byte[] data, byte[] secret) {
+    private ProtoPackage(byte[] data, String signature) {
         this.data = data;
-        this.signature = ProtoPackageUtil.generateSignature(data, secret);
+        this.signature = signature;
     }
 
     public byte[] getData() {
@@ -38,13 +42,13 @@ public class ProtoPackage {
             return this;
         }
 
-        public ProtoPackage sign(String secret) throws Exception {
+        public ProtoPackage sign(String secret) throws ProtoPackageInvalidSubjectException, ProtoPackageNoSecretException, ProtoPackageUnexpectedDatTypeException {
             if (this.sub == ClaimsUtil.Sub.UNRECOGNIZED) {
-                throw new Exception("no subject error");
+                throw new ProtoPackageInvalidSubjectException();
             }
 
             if (Objects.isNull(secret)) {
-                throw new Exception("no secret error");
+                throw new ProtoPackageNoSecretException();
             }
 
             ProtoRequest.Claims.Builder claimsBuilder = ProtoRequest.Claims.newBuilder();
@@ -62,12 +66,13 @@ public class ProtoPackage {
 //            case MutationResponseOuterClass.MutationResponse v -> claimsBuilder.setMutationResponse(v);
                 case ClaimsUtil.MigrationRequest v -> claimsBuilder.setMigrationRequest(v);
                 case ClaimsUtil.QueryRequest v -> claimsBuilder.setQueryRequest(v);
-                default -> throw new Exception("dat type error"); // replace this with something more intuitive
+                default -> throw new ProtoPackageUnexpectedDatTypeException();
             }
             ProtoRequest.Request.Builder protoRequestBuilder = ProtoRequest.Request.newBuilder();
             protoRequestBuilder.setClaims(claimsBuilder.build());
+            byte[] data = protoRequestBuilder.build().toByteArray();
 
-            return new ProtoPackage(protoRequestBuilder.build().toByteArray(), secret.getBytes(StandardCharsets.UTF_8));
+            return new ProtoPackage(data, ProtoPackageUtil.generateSignature(data, secret.getBytes(StandardCharsets.UTF_8)));
         }
     }
 }
