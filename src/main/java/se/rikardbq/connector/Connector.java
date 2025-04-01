@@ -1,20 +1,14 @@
 package se.rikardbq.connector;
 
-import com.auth0.jwt.interfaces.Claim;
-import com.auth0.jwt.interfaces.DecodedJWT;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.digest.DigestUtils;
-import se.rikardbq.exception.ProtoPackageVerifyErrorException;
-import se.rikardbq.exception.TokenPayloadErrorException;
+import se.rikardbq.exception.MissingHeaderException;
+import se.rikardbq.exception.ProtoPackageErrorException;
 import se.rikardbq.exception.UnknownQueryArgTypeException;
+import se.rikardbq.exception.UnknownRequestDatTypeException;
 import se.rikardbq.jwt.TokenManager;
-import se.rikardbq.models.Enums;
-import se.rikardbq.models.FetchResponse;
-import se.rikardbq.models.MutationResponse;
-import se.rikardbq.models.TokenPayload;
 import se.rikardbq.proto.ClaimsUtil;
 import se.rikardbq.proto.ProtoManager;
 import se.rikardbq.proto.ProtoPackage;
@@ -26,7 +20,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -53,32 +46,16 @@ public class Connector {
         this.usernamePasswordHash = hashedUsernamePassword;
     }
 
-    public <T> List<T> query(Class<T> valueType, String query, Object... parts) throws JsonProcessingException, TokenPayloadErrorException {
-        FetchResponse<T> qRes = makeQuery(query, parts, valueType);
-
-        return qRes.getData();
+    public <T> List<T> query(Class<T> valueType, String query, Object... parts) throws IOException, MissingHeaderException, ProtoPackageErrorException {
+        return makeQuery(query, parts, valueType);
     }
 
-    public <T> List<T> query_2(Class<T> valueType, String query, Object... parts) throws Exception {
-        return makeQuery_2(query, parts, valueType);
-    }
-
-    private <T> FetchResponse<T> makeQuery(String query, Object[] parts, Class<T> valueType) throws JsonProcessingException, TokenPayloadErrorException {
-        String response = this.makeRequest(
-                this.createQueryDat(query, parts),
-                Enums.Subject.FETCH,
-                false
-        );
-
-        return this.objectMapper.readValue(response, this.objectMapper.getTypeFactory().constructParametricType(FetchResponse.class, valueType));
-    }
-
-    private <T> List<T> makeQuery_2(String query, Object[] parts, Class<T> valueType) throws Exception {
+    private <T> List<T> makeQuery(String query, Object[] parts, Class<T> valueType) throws IOException, MissingHeaderException, ProtoPackageErrorException {
         ClaimsUtil.QueryRequest.Builder queryRequestBuilder = ClaimsUtil.QueryRequest.newBuilder()
                 .setQuery(query)
                 .addAllParts(this.mapPartsToQueryArgs(parts));
 
-        ClaimsUtil.FetchResponse response = (ClaimsUtil.FetchResponse) this.makeRequest_2(
+        ClaimsUtil.FetchResponse response = (ClaimsUtil.FetchResponse) this.makeRequest(
                 queryRequestBuilder.build(),
                 ClaimsUtil.Sub.FETCH,
                 false
@@ -90,73 +67,19 @@ public class Connector {
         );
     }
 
-    public long mutate(String query, Object... parts) throws JsonProcessingException, TokenPayloadErrorException {
-        MutationResponse mRes = makeMutation(query, parts);
-
-        return mRes.getRowsAffected();
+    public ClaimsUtil.MutationResponse mutate(String query, Object... parts) throws InvalidProtocolBufferException, MissingHeaderException, ProtoPackageErrorException {
+        return makeMutation(query, parts);
     }
 
-    private MutationResponse makeMutation(String query, Object[] parts) throws JsonProcessingException, TokenPayloadErrorException {
-        String response = this.makeRequest(
-                this.createQueryDat(query, parts),
-                Enums.Subject.MUTATE,
+    private ClaimsUtil.MutationResponse makeMutation(String query, Object[] parts) throws InvalidProtocolBufferException, MissingHeaderException, ProtoPackageErrorException {
+        ClaimsUtil.QueryRequest.Builder queryRequestBuilder = ClaimsUtil.QueryRequest.newBuilder()
+                .setQuery(query)
+                .addAllParts(this.mapPartsToQueryArgs(parts));
+
+        return (ClaimsUtil.MutationResponse) this.makeRequest(
+                queryRequestBuilder.build(),
+                ClaimsUtil.Sub.MUTATE,
                 false
-        );
-
-        return this.objectMapper.readValue(response, MutationResponse.class);
-    }
-
-    String makeRequest(Map<String, Object> dat, Enums.Subject subject, boolean isMigration) throws JsonProcessingException, TokenPayloadErrorException {
-        String token = this.tokenManager.encodeToken(
-                dat,
-                subject,
-                this.usernamePasswordHash
-        );
-        String response = this.makeRequest(
-                new TokenPayload(token, null),
-                isMigration
-        );
-
-        return this.handleResponse(response);
-    }
-
-    private String makeRequest(TokenPayload requestBody, boolean isMigration) throws JsonProcessingException {
-        String reqBody = this.objectMapper.writeValueAsString(requestBody);
-        try (HttpClient client = HttpClient.newHttpClient()) {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(
-                            isMigration
-                                    ? String.format("%s/m", this.fullAddress)
-                                    : this.fullAddress
-                    ))
-                    .header("Content-Type", "application/json")
-                    .header("u_", this.usernameHash)
-                    .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-                    .build();
-
-            HttpResponse<String> res = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            return res.body();
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private String handleResponse(String response) throws JsonProcessingException, TokenPayloadErrorException {
-        TokenPayload resToken = this.objectMapper.readValue(response, TokenPayload.class);
-        if (resToken.getError() != null) {
-            throw new TokenPayloadErrorException(resToken.getError());
-        }
-        DecodedJWT decodedJWT = this.tokenManager.decodeToken(resToken.getPayload(), this.usernamePasswordHash);
-        Claim datClaim = decodedJWT.getClaims().get("dat");
-
-        return datClaim.toString();
-    }
-
-    private Map<String, Object> createQueryDat(String query, Object[] parts) {
-        return Map.ofEntries(
-                Map.entry("query", query),
-                Map.entry("parts", List.of(parts))
         );
     }
 
@@ -174,20 +97,25 @@ public class Connector {
         }).toList();
     }
 
-    Object makeRequest_2(ClaimsUtil.QueryRequest dat, ClaimsUtil.Sub subject, boolean isMigration) throws Exception {
-        ProtoPackage protoPackage = this.protoManager.encodeProto(dat, subject, this.usernamePasswordHash);//this.usernamePasswordHash);
-        HttpResponse<byte[]> response = this.makeRequest_2(
+    Object makeRequest(Object dat, ClaimsUtil.Sub subject, boolean isMigration) throws MissingHeaderException, InvalidProtocolBufferException, ProtoPackageErrorException {
+        var data = switch (dat) {
+            case ClaimsUtil.QueryRequest v -> v;
+            case ClaimsUtil.MigrationRequest v -> v;
+            default -> throw new UnknownRequestDatTypeException();
+        };
+        ProtoPackage protoPackage = this.protoManager.encodeProto(data, subject, this.usernamePasswordHash);
+        HttpResponse<byte[]> response = this.makeRequest(
                 protoPackage,
                 isMigration
         );
 
         byte[] body = response.body();
-        String signature = response.headers().firstValue("0").orElseThrow(() -> new Exception("signature header missing error"));
+        String signature = response.headers().firstValue("0").orElseThrow(() -> new MissingHeaderException("Missing header 0", "Response signature header missing"));
 
-        return this.handleResponse_2(body, signature);
+        return this.handleResponse(body, signature);
     }
 
-    private HttpResponse<byte[]> makeRequest_2(ProtoPackage protoPackage, boolean isMigration) throws JsonProcessingException {
+    private HttpResponse<byte[]> makeRequest(ProtoPackage protoPackage, boolean isMigration) {
         try (HttpClient client = HttpClient.newHttpClient()) {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(
@@ -207,7 +135,7 @@ public class Connector {
         }
     }
 
-    private Object handleResponse_2(byte[] body, String signature) throws ProtoPackageVerifyErrorException, InvalidProtocolBufferException {
+    private Object handleResponse(byte[] body, String signature) throws ProtoPackageErrorException, InvalidProtocolBufferException {
         ProtoRequest.Request response = this.protoManager.decodeProto(body, this.usernamePasswordHash, signature);
         ProtoRequest.Claims claims = response.getClaims();
         return switch (claims.getDatCase()) {

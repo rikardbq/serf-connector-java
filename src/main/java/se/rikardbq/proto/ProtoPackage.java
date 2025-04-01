@@ -3,6 +3,7 @@ package se.rikardbq.proto;
 import se.rikardbq.exception.ProtoPackageInvalidSubjectException;
 import se.rikardbq.exception.ProtoPackageNoSecretException;
 import se.rikardbq.exception.ProtoPackageUnexpectedDatTypeException;
+import se.rikardbq.exception.ProtoPackageErrorException;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -42,7 +43,7 @@ public class ProtoPackage {
             return this;
         }
 
-        public ProtoPackage sign(String secret) throws ProtoPackageInvalidSubjectException, ProtoPackageNoSecretException, ProtoPackageUnexpectedDatTypeException {
+        public ProtoPackage sign(String secret) throws ProtoPackageErrorException {
             if (this.sub == ClaimsUtil.Sub.UNRECOGNIZED) {
                 throw new ProtoPackageInvalidSubjectException();
             }
@@ -60,7 +61,6 @@ public class ProtoPackage {
                     .setExp(now.plusSeconds(30).getEpochSecond());
 
             switch (this.dat) {
-//            some are not needed from this side of the transaction. Only the request parts are important.. possibly... I NEED TO THINK OK!?
 //            case FetchResponseOuterClass.FetchResponse v -> claimsBuilder.setFetchResponse(v);
 //            case MigrationResponseOuterClass.MigrationResponse v -> claimsBuilder.setMigrationResponse(v);
 //            case MutationResponseOuterClass.MutationResponse v -> claimsBuilder.setMutationResponse(v);

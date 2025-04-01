@@ -25,7 +25,7 @@ public class ProtoPackageVerifier {
         return Objects.equals(signature, ProtoPackageUtil.generateSignature(data, secret));
     }
 
-    public ProtoRequest.Request verify(byte[] data) throws ProtoPackageVerifyErrorException, InvalidProtocolBufferException {
+    public ProtoRequest.Request verify(byte[] data) throws ProtoPackageErrorException, InvalidProtocolBufferException {
         if (!verifySignature(data, this.signature, this.secret.getBytes(StandardCharsets.UTF_8))) {
             throw new ProtoRequestInvalidSignatureErrorException();
         }
