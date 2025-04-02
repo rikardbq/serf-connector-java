@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>se.rikardbq</groupId>
-    <artifactId>sqlite_server_connector</artifactId>
+    <artifactId>serf-connector-java</artifactId>
     <version>26</version>
 
     <build>
