@@ -99,7 +99,9 @@ public class Migrator {
     }
 
     private List<Migration> prepareMigrations() {
-        try (Stream<Path> files = Files.list(Path.of(this.migrationsLocation))) {
+        try (Stream<Path> files = Files.list(Path.of(this.migrationsLocation))
+                .sorted((a, b) -> a.getFileName().toString().compareToIgnoreCase(b.getFileName().toString()))) {
+
             return files.filter(x ->
                     Files.isRegularFile(x)
                             && x.getFileName().toString().endsWith(".sql")
