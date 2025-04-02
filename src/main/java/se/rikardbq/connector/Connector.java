@@ -8,6 +8,7 @@ import se.rikardbq.exception.MissingHeaderException;
 import se.rikardbq.exception.ProtoPackageErrorException;
 import se.rikardbq.exception.UnknownQueryArgTypeException;
 import se.rikardbq.exception.UnknownRequestDatTypeException;
+import se.rikardbq.models.MutationResponse;
 import se.rikardbq.proto.ClaimsUtil;
 import se.rikardbq.proto.ProtoManager;
 import se.rikardbq.proto.ProtoPackage;
@@ -64,8 +65,10 @@ public class Connector {
         );
     }
 
-    public ClaimsUtil.MutationResponse mutate(String query, Object... parts) throws InvalidProtocolBufferException, MissingHeaderException, ProtoPackageErrorException {
-        return makeMutation(query, parts);
+    public MutationResponse mutate(String query, Object... parts) throws InvalidProtocolBufferException, MissingHeaderException, ProtoPackageErrorException {
+        ClaimsUtil.MutationResponse mutationResponse = makeMutation(query, parts);
+
+        return new MutationResponse(mutationResponse.getRowsAffected(), mutationResponse.getLastInsertRowId());
     }
 
     private ClaimsUtil.MutationResponse makeMutation(String query, Object[] parts) throws InvalidProtocolBufferException, MissingHeaderException, ProtoPackageErrorException {
