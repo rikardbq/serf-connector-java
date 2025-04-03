@@ -5,9 +5,7 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
-import se.rikardbq.exception.MigrationFailedException;
-import se.rikardbq.exception.MissingHeaderException;
-import se.rikardbq.exception.ProtoPackageErrorException;
+import se.rikardbq.exception.*;
 import se.rikardbq.models.Migration;
 import se.rikardbq.proto.ClaimsUtil;
 
@@ -56,7 +54,7 @@ public class Migrator {
         }
     }
 
-    public void run(Connector connector) throws Exception {
+    public void run(Connector connector) throws MigrationFailedException, IOException, HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, ProtoPackageErrorException {
         List<Migration> migrations = this.prepareMigrations();
         if (!migrations.isEmpty()) {
             for (Migration m : migrations) {
@@ -68,7 +66,7 @@ public class Migrator {
         }
     }
 
-    private void apply(Migration migration, Connector connector) throws MigrationFailedException, IOException, MissingHeaderException, ProtoPackageErrorException {
+    private void apply(Migration migration, Connector connector) throws MigrationFailedException, IOException, HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, ProtoPackageErrorException {
         ClaimsUtil.MigrationResponse response = this.makeMigration(migration, connector);
 
         if (!response.getState()) {
@@ -79,7 +77,7 @@ public class Migrator {
         this.writeStateFile(this.objectMapper.writeValueAsString(this.appliedMigrations));
     }
 
-    private ClaimsUtil.MigrationResponse makeMigration(Migration migration, Connector connector) throws InvalidProtocolBufferException, MissingHeaderException, ProtoPackageErrorException {
+    private ClaimsUtil.MigrationResponse makeMigration(Migration migration, Connector connector) throws InvalidProtocolBufferException, HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, ProtoPackageErrorException {
 
         ClaimsUtil.MigrationRequest.Builder migrationRequestBuilder = ClaimsUtil.MigrationRequest.newBuilder()
                 .setName(migration.getName())

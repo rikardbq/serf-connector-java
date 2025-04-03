@@ -4,10 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.digest.DigestUtils;
-import se.rikardbq.exception.MissingHeaderException;
-import se.rikardbq.exception.ProtoPackageErrorException;
-import se.rikardbq.exception.UnknownQueryArgTypeException;
-import se.rikardbq.exception.UnknownRequestDatTypeException;
+import se.rikardbq.exception.*;
 import se.rikardbq.models.MutationResponse;
 import se.rikardbq.proto.ClaimsUtil;
 import se.rikardbq.proto.ProtoManager;
@@ -44,11 +41,11 @@ public class Connector {
         this.usernamePasswordHash = hashedUsernamePassword;
     }
 
-    public <T> List<T> query(Class<T> valueType, String query, Object... parts) throws IOException, MissingHeaderException, ProtoPackageErrorException {
+    public <T> List<T> query(Class<T> valueType, String query, Object... parts) throws IOException, HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, ProtoPackageErrorException {
         return makeQuery(query, parts, valueType);
     }
 
-    private <T> List<T> makeQuery(String query, Object[] parts, Class<T> valueType) throws IOException, MissingHeaderException, ProtoPackageErrorException {
+    private <T> List<T> makeQuery(String query, Object[] parts, Class<T> valueType) throws IOException, HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, ProtoPackageErrorException {
         ClaimsUtil.QueryRequest.Builder queryRequestBuilder = ClaimsUtil.QueryRequest.newBuilder()
                 .setQuery(query)
                 .addAllParts(this.mapPartsToQueryArgs(parts));
@@ -65,13 +62,13 @@ public class Connector {
         );
     }
 
-    public MutationResponse mutate(String query, Object... parts) throws InvalidProtocolBufferException, MissingHeaderException, ProtoPackageErrorException {
+    public MutationResponse mutate(String query, Object... parts) throws InvalidProtocolBufferException, HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, ProtoPackageErrorException {
         ClaimsUtil.MutationResponse mutationResponse = makeMutation(query, parts);
 
         return new MutationResponse(mutationResponse.getRowsAffected(), mutationResponse.getLastInsertRowId());
     }
 
-    private ClaimsUtil.MutationResponse makeMutation(String query, Object[] parts) throws InvalidProtocolBufferException, MissingHeaderException, ProtoPackageErrorException {
+    private ClaimsUtil.MutationResponse makeMutation(String query, Object[] parts) throws InvalidProtocolBufferException, HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, ProtoPackageErrorException {
         ClaimsUtil.QueryRequest.Builder queryRequestBuilder = ClaimsUtil.QueryRequest.newBuilder()
                 .setQuery(query)
                 .addAllParts(this.mapPartsToQueryArgs(parts));
@@ -97,7 +94,7 @@ public class Connector {
         }).toList();
     }
 
-    Object makeRequest(Object dat, ClaimsUtil.Sub subject, boolean isMigration) throws MissingHeaderException, InvalidProtocolBufferException, ProtoPackageErrorException {
+    Object makeRequest(Object dat, ClaimsUtil.Sub subject, boolean isMigration) throws HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, InvalidProtocolBufferException, ProtoPackageErrorException {
         var data = switch (dat) {
             case ClaimsUtil.QueryRequest v -> v;
             case ClaimsUtil.MigrationRequest v -> v;
@@ -109,8 +106,16 @@ public class Connector {
                 isMigration
         );
 
+        // if bad request / unauthorized, don't treat as proto
+        if (response.statusCode() == 400) {
+            throw new HttpBadRequestException(new String(response.body()));
+        }
+        if (response.statusCode() == 401) {
+            throw new HttpUnauthorizedException(new String(response.body()));
+        }
+
         byte[] body = response.body();
-        String signature = response.headers().firstValue("0").orElseThrow(() -> new MissingHeaderException("Missing header 0", "Response signature header missing"));
+        String signature = response.headers().firstValue("0").orElseThrow(() -> new HttpMissingHeaderException("Missing header 0", "Response signature header missing"));
 
         return this.handleResponse(body, signature);
     }
