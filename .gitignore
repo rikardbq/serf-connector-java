@@ -39,4 +39,4 @@ build/
 
 ### my
 migrations/
-src/main/java/se/rikardbq/temp/**
+src/main/java/se/rikardbq/temp/

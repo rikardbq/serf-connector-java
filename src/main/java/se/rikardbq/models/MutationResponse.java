@@ -1,23 +1,11 @@
 package se.rikardbq.models;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.io.Serial;
-import java.io.Serializable;
 import java.util.Objects;
 
-public class MutationResponse implements Serializable {
+public class MutationResponse {
 
-    @Serial
-    private static final long serialVersionUID = 1L;
-
-    @JsonProperty("rows_affected")
-    private long rowsAffected;
-    @JsonProperty("last_insert_rowid")
-    private long lastInsertRowId;
-
-    public MutationResponse() {
-    }
+    private final long rowsAffected;
+    private final long lastInsertRowId;
 
     public MutationResponse(long rowsAffected, long lastInsertRowId) {
         this.rowsAffected = rowsAffected;
@@ -28,16 +16,8 @@ public class MutationResponse implements Serializable {
         return rowsAffected;
     }
 
-    public void setRowsAffected(long rowsAffected) {
-        this.rowsAffected = rowsAffected;
-    }
-
     public long getLastInsertRowId() {
         return lastInsertRowId;
-    }
-
-    public void setLastInsertRowId(long lastInsertRowId) {
-        this.lastInsertRowId = lastInsertRowId;
     }
 
     @Override
@@ -45,7 +25,8 @@ public class MutationResponse implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MutationResponse mutationResponse = (MutationResponse) o;
-        return rowsAffected == mutationResponse.rowsAffected && lastInsertRowId == mutationResponse.lastInsertRowId;
+        return rowsAffected == mutationResponse.rowsAffected
+                && lastInsertRowId == mutationResponse.lastInsertRowId;
     }
 
     @Override

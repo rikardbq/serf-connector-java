@@ -1,14 +1,13 @@
 package se.rikardbq.connector;
 
 import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import se.rikardbq.exception.TokenPayloadErrorException;
-import se.rikardbq.models.Enums;
-import se.rikardbq.models.MigrationResponse;
-import se.rikardbq.models.migration.Migration;
+import com.google.protobuf.InvalidProtocolBufferException;
+import se.rikardbq.exception.*;
+import se.rikardbq.models.Migration;
+import se.rikardbq.proto.ClaimsUtil;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -55,7 +54,7 @@ public class Migrator {
         }
     }
 
-    public void run(Connector connector) throws Exception {
+    public void run(Connector connector) throws MigrationFailedException, IOException, HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, ProtoPackageErrorException {
         List<Migration> migrations = this.prepareMigrations();
         if (!migrations.isEmpty()) {
             for (Migration m : migrations) {
@@ -67,27 +66,28 @@ public class Migrator {
         }
     }
 
-    private void apply(Migration migration, Connector connector) throws Exception {
-        MigrationResponse response = this.makeMigration(migration, connector);
+    private void apply(Migration migration, Connector connector) throws MigrationFailedException, IOException, HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, ProtoPackageErrorException {
+        ClaimsUtil.MigrationResponse response = this.makeMigration(migration, connector);
 
         if (!response.getState()) {
-            throw new Exception("Migration failed");
+            throw new MigrationFailedException();
         }
 
         this.appliedMigrations.get(STATE_KEY).add(migration.getName());
         this.writeStateFile(this.objectMapper.writeValueAsString(this.appliedMigrations));
     }
 
-    private MigrationResponse makeMigration(Migration migration, Connector connector) throws JsonProcessingException, TokenPayloadErrorException {
-        String response = connector.makeRequest(
-                this.createMigrationDat(
-                        migration.getName(),
-                        migration.getQuery()
-                ),
-                Enums.Subject.MIGRATE, true
-        );
+    private ClaimsUtil.MigrationResponse makeMigration(Migration migration, Connector connector) throws InvalidProtocolBufferException, HttpBadRequestException, HttpUnauthorizedException, HttpMissingHeaderException, ProtoPackageErrorException {
 
-        return this.objectMapper.readValue(response, MigrationResponse.class);
+        ClaimsUtil.MigrationRequest.Builder migrationRequestBuilder = ClaimsUtil.MigrationRequest.newBuilder()
+                .setName(migration.getName())
+                .setQuery(migration.getQuery());
+
+        return (ClaimsUtil.MigrationResponse) connector.makeRequest(
+                migrationRequestBuilder.build(),
+                ClaimsUtil.Sub.MIGRATE,
+                true
+        );
     }
 
     private String trimFileEnding(Path fileName, String ending) {
@@ -97,7 +97,9 @@ public class Migrator {
     }
 
     private List<Migration> prepareMigrations() {
-        try (Stream<Path> files = Files.list(Path.of(this.migrationsLocation))) {
+        try (Stream<Path> files = Files.list(Path.of(this.migrationsLocation))
+                .sorted((a, b) -> a.getFileName().toString().compareToIgnoreCase(b.getFileName().toString()))) {
+
             return files.filter(x ->
                     Files.isRegularFile(x)
                             && x.getFileName().toString().endsWith(".sql")
@@ -115,13 +117,6 @@ public class Migrator {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private Map<String, Object> createMigrationDat(String name, String query) {
-        return Map.ofEntries(
-                Map.entry("name", name),
-                Map.entry("query", query)
-        );
     }
 
     private void writeStateFile(String content) throws IOException {
