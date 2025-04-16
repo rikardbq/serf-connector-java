@@ -26,6 +26,14 @@ public class ProtoPackageVerifier {
     }
 
     public ProtoRequest.Request verify(byte[] data) throws ProtoPackageErrorException, InvalidProtocolBufferException {
+        if (Objects.isNull(this.signature)) {
+            throw new ProtoPackageVerifierMissingSignatureException();
+        }
+
+        if (Objects.isNull(this.secret)) {
+            throw new ProtoPackageVerifierMissingSecretException();
+        }
+
         if (!verifySignature(data, this.signature, this.secret.getBytes(StandardCharsets.UTF_8))) {
             throw new ProtoRequestInvalidSignatureErrorException();
         }
